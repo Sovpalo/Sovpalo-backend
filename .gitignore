@@ -1,2 +1,4 @@
 .gomodcache
 .idea
+.git
+.DS_Store
