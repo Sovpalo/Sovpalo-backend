@@ -1,16 +1,59 @@
 package main
 
 import (
-	"github.com/Sovpalo/sovpalo-backend"
-	"github.com/Sovpalo/sovpalo-backend/pkg/handler"
+	"context"
 	"log"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
+
+	"github.com/Sovpalo/sovpalo-backend"
+	"github.com/Sovpalo/sovpalo-backend/internal/config"
+	"github.com/Sovpalo/sovpalo-backend/internal/db"
+	"github.com/Sovpalo/sovpalo-backend/pkg/handler"
+	"github.com/Sovpalo/sovpalo-backend/pkg/repository"
+	"github.com/Sovpalo/sovpalo-backend/pkg/service"
 )
 
 func main() {
-	handlers := new(handler.Handler)
+	cfg := config.Load()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	pool, err := db.NewPostgres(ctx, cfg)
+	if err != nil {
+		log.Fatalf("database connection error: %s", err.Error())
+	}
+	defer pool.Close()
+
+	redisClient, err := db.NewRedis(ctx, cfg)
+	if err != nil {
+		log.Fatalf("redis connection error: %s", err.Error())
+	}
+	defer redisClient.Close()
+
+	healthRepo := repository.NewPostgresHealthRepository(pool)
+	healthService := service.NewHealthService(healthRepo)
+	handlers := handler.NewHandler(healthService)
+
 	srv := new(sovpalo.Server)
-	log.Println("server starting on :8000")
-	if err := srv.Run("8000", handlers.InitRoutes()); err != nil {
-		log.Fatalf("error occured while running server: %s", err.Error())
+	go func() {
+		log.Printf("server starting on :%s", cfg.Port)
+		if err := srv.Run(cfg.Port, handlers.InitRoutes()); err != nil {
+			log.Fatalf("error occured while running server: %s", err.Error())
+		}
+	}()
+
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	<-quit
+
+	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer shutdownCancel()
+
+	if err := srv.Shutdown(shutdownCtx); err != nil {
+		log.Printf("error while shutting down server: %s", err.Error())
 	}
 }

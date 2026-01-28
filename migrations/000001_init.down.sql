@@ -1,0 +1,11 @@
+DROP TABLE IF EXISTS user_sessions;
+DROP TABLE IF EXISTS notifications;
+DROP TABLE IF EXISTS media_archive;
+DROP TABLE IF EXISTS user_availability;
+DROP TABLE IF EXISTS ideas;
+DROP TABLE IF EXISTS event_participants;
+DROP TABLE IF EXISTS events;
+DROP TABLE IF EXISTS group_members;
+DROP TABLE IF EXISTS groups;
+DROP TABLE IF EXISTS password_reset_tokens;
+DROP TABLE IF EXISTS users;
