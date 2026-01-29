@@ -3,12 +3,15 @@ package handler
 import (
 	"net/http"
 
+	"github.com/Sovpalo/sovpalo-backend/pkg/repository"
 	"github.com/Sovpalo/sovpalo-backend/pkg/service"
 	"github.com/gin-gonic/gin"
 )
 
 type Handler struct {
-	health service.HealthService
+	health   service.HealthService
+	services *service.Service
+	repo     repository.Repository
 }
 
 func NewHandler(health service.HealthService) *Handler {
