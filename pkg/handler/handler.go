@@ -24,6 +24,9 @@ func (h *Handler) InitRoutes() *gin.Engine {
 
 	router.GET("/health", h.healthHandler)
 
+
+
+
 	return router
 }
 

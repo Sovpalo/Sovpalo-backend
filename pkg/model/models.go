@@ -13,7 +13,7 @@ type User struct {
 	Username      string    `db:"username" json:"username"`
 	AvatarURL     *string   `db:"avatar_url" json:"avatar_url,omitempty"`
 	EmailVerified bool      `db:"email_verified" json:"email_verified"`
-	PasswordHash  *string   `db:"password_hash" json:"-"`
+	PasswordHash  string    `db:"password_hash" json:"-"`
 	CreatedAt     time.Time `db:"created_at" json:"created_at"`
 	UpdatedAt     time.Time `db:"updated_at" json:"updated_at"`
 }
