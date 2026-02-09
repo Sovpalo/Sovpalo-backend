@@ -2,47 +2,27 @@
 BEGIN;
 
 CREATE TABLE users (
-    id BIGSERIAL PRIMARY KEY,
+    id SERIAL PRIMARY KEY,
     email VARCHAR(255) UNIQUE NOT NULL,
     telegram_id BIGINT UNIQUE,
-    username VARCHAR(100) NOT NULL,
+    username VARCHAR(100) UNIQUE NOT NULL,
     avatar_url TEXT,
-    email_verified BOOLEAN DEFAULT FALSE,
-    password_hash TEXT,
+    -- email_verified BOOLEAN DEFAULT FALSE,
+    password   TEXT,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 CREATE TABLE password_reset_tokens (
-    id BIGSERIAL PRIMARY KEY,
+    id SERIAL PRIMARY KEY,
     user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     token_hash TEXT NOT NULL,
     expires_at TIMESTAMPTZ NOT NULL,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE TABLE groups (
-    id BIGSERIAL PRIMARY KEY,
-    name VARCHAR(255) NOT NULL,
-    description TEXT,
-    avatar_url TEXT,
-    invite_code VARCHAR(50) UNIQUE,
-    created_by BIGINT NOT NULL REFERENCES users(id),
-    created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ DEFAULT NOW()
-);
-
-CREATE TABLE group_members (
-    id BIGSERIAL PRIMARY KEY,
-    group_id BIGINT NOT NULL REFERENCES groups(id) ON DELETE CASCADE,
-    user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    role VARCHAR(20) NOT NULL DEFAULT 'member',
-    joined_at TIMESTAMPTZ DEFAULT NOW(),
-    UNIQUE(group_id, user_id)
-);
-
 CREATE TABLE events (
-    id BIGSERIAL PRIMARY KEY,
+    id SERIAL PRIMARY KEY,
     group_id BIGINT NOT NULL REFERENCES groups(id) ON DELETE CASCADE,
     created_by BIGINT NOT NULL REFERENCES users(id),
     title VARCHAR(255) NOT NULL,
@@ -57,7 +37,7 @@ CREATE TABLE events (
 );
 
 CREATE TABLE event_participants (
-    id BIGSERIAL PRIMARY KEY,
+    id SERIAL PRIMARY KEY,
     event_id BIGINT NOT NULL REFERENCES events(id) ON DELETE CASCADE,
     user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     status VARCHAR(20) DEFAULT 'unknown',
@@ -68,7 +48,7 @@ CREATE TABLE event_participants (
 );
 
 CREATE TABLE ideas (
-    id BIGSERIAL PRIMARY KEY,
+    id SERIAL PRIMARY KEY,
     group_id BIGINT NOT NULL REFERENCES groups(id) ON DELETE CASCADE,
     created_by BIGINT NOT NULL REFERENCES users(id),
     title VARCHAR(255) NOT NULL,
@@ -81,7 +61,7 @@ CREATE TABLE ideas (
 );
 
 CREATE TABLE user_availability (
-    id BIGSERIAL PRIMARY KEY,
+    id SERIAL PRIMARY KEY,
     user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     group_id BIGINT NOT NULL REFERENCES groups(id) ON DELETE CASCADE,
     start_time TIMESTAMPTZ NOT NULL,
@@ -93,7 +73,7 @@ CREATE TABLE user_availability (
 );
 
 CREATE TABLE media_archive (
-    id BIGSERIAL PRIMARY KEY,
+    id SERIAL PRIMARY KEY,
     group_id BIGINT NOT NULL REFERENCES groups(id) ON DELETE CASCADE,
     uploaded_by BIGINT NOT NULL REFERENCES users(id),
     event_id BIGINT REFERENCES events(id) ON DELETE SET NULL,
@@ -108,7 +88,7 @@ CREATE TABLE media_archive (
 );
 
 CREATE TABLE notifications (
-    id BIGSERIAL PRIMARY KEY,
+    id SERIAL PRIMARY KEY,
     user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     type VARCHAR(50) NOT NULL,
     title VARCHAR(255) NOT NULL,
@@ -120,7 +100,7 @@ CREATE TABLE notifications (
 );
 
 CREATE TABLE user_sessions (
-    id BIGSERIAL PRIMARY KEY,
+    id SERIAL PRIMARY KEY,
     user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     refresh_token_hash TEXT NOT NULL,
     user_agent TEXT,
@@ -164,3 +144,16 @@ CREATE INDEX idx_sessions_user ON user_sessions(user_id);
 CREATE INDEX idx_sessions_expires ON user_sessions(expires_at);
 
 COMMIT;
+
+-- +goose Down
+DROP TABLE IF EXISTS user_sessions;
+DROP TABLE IF EXISTS notifications;
+DROP TABLE IF EXISTS media_archive;
+DROP TABLE IF EXISTS user_availability;
+DROP TABLE IF EXISTS ideas;
+DROP TABLE IF EXISTS event_participants;
+DROP TABLE IF EXISTS events;
+DROP TABLE IF EXISTS group_members;
+DROP TABLE IF EXISTS groups;
+DROP TABLE IF EXISTS password_reset_tokens;
+DROP TABLE IF EXISTS users;

@@ -34,9 +34,14 @@ func main() {
 	}
 	defer redisClient.Close()
 
-	healthRepo := repository.NewPostgresHealthRepository(pool)
+	healthRepo := repository.NewCompositeHealthRepository(
+		repository.NewPostgresHealthRepository(pool),
+		repository.NewRedisHealthRepository(redisClient),
+	)
 	healthService := service.NewHealthService(healthRepo)
-	handlers := handler.NewHandler(healthService)
+	repos := repository.NewRepository(pool, redisClient)
+	services := service.NewService(repos)
+	handlers := handler.NewHandler(healthService, services)
 
 	srv := new(sovpalo.Server)
 	go func() {

@@ -1,16 +1,14 @@
-package email
+package handler
 
 import (
 	"errors"
-	"log"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 
-	"github.com/gin-gonic/gin"
-
-	"github.com/Sovpalo/sovpalo-backend/pkg/handler"
 	"github.com/Sovpalo/sovpalo-backend/pkg/model"
+	"github.com/gin-gonic/gin"
 )
 
 type AuthEmail struct {
@@ -19,7 +17,6 @@ type AuthEmail struct {
 	senderEmail string
 	senderPass  string
 }
-
 type VerificationCode struct {
 	Code       string
 	ExpiresAt  time.Time
@@ -33,42 +30,49 @@ var (
 	mu                sync.Mutex
 )
 
-type signInInput struct {
-	Email    string `json:"email" binding:"required"`
-	Password string `json:"password" binding:"required"`
+const (
+	authorizationHeader = "Authorization"
+	userCtx             = "user_id"
+)
+
+func (h *Handler) userIdentity(c *gin.Context) {
+
+	header := c.GetHeader(authorizationHeader)
+
+	if header == "" {
+		newErrorResponse(c, http.StatusUnauthorized, "No authorization header")
+		return
+	}
+
+	headerParts := strings.Split(header, " ")
+	if len(headerParts) != 2 {
+		newErrorResponse(c, http.StatusUnauthorized, "Invalid authorization header")
+		return
+	}
+	userId, err := h.services.Authorization.ParseToken(headerParts[1])
+
+	if err != nil {
+		newErrorResponse(c, http.StatusUnauthorized, err.Error())
+		return
+	}
+
+	c.Set(userCtx, userId)
+	c.Next()
 }
 
-func (h *handler.Handler) signUp(c *gin.Context) {
-	var input model.User
-	if err := c.BindJSON(&input); err != nil {
-		h.newErrorResponse(c, http.StatusBadRequest, "invalid input body")
-		return
-	}
-	err := validatePassword(input.PasswordHash)
-	if err != nil {
-		h.newErrorResponse(c, http.StatusBadRequest, "incorrect password")
-		return
+func getUserId(c *gin.Context) (int, error) {
+	id, ok := c.Get(userCtx)
+	if !ok {
+		return 0, errors.New("User Id not found")
 	}
 
-	exists, err := h.services.UserExists(input.Email)
-	if err != nil {
-		h.newErrorResponse(c, http.StatusBadRequest, "user verification failed")
-		return
+	idInt, ok := id.(int)
+	if !ok {
+		return 0, errors.New("User Id is of invalid type")
 	}
-
-	if exists {
-		h.newErrorResponse(c, http.StatusBadRequest, "user already exists")
-		return
-	}
-
-	code := h.services.Authorization.GenerateCode()
-
-	if err := h.services.SendCodeToEmail(input.Email, code); err != nil {
-		log.Println("failed to send code:", err)
-		h.newErrorResponse(c, http.StatusBadRequest, "failed to send code")
-		return
-	}
+	return idInt, nil
 }
+
 func validatePassword(password string) error {
 	if len(password) < 8 {
 		return errors.New("password is too short")
@@ -94,4 +98,38 @@ func validatePassword(password string) error {
 	}
 
 	return nil
+}
+func checkCode(c *gin.Context) (VerificationCode, error) {
+	var input struct {
+		Email string `json:"email"`
+		Code  string `json:"code"`
+	}
+
+	if err := c.BindJSON(&input); err != nil {
+
+		return VerificationCode{}, errors.New("incorrect input")
+	}
+
+	mu.Lock()
+	storedCode, exists := verificationCodes[input.Email]
+	mu.Unlock()
+
+	if !exists {
+		return VerificationCode{}, errors.New("code not found")
+	}
+	if storedCode.ExpiresAt.Before(time.Now()) {
+		return VerificationCode{}, errors.New("code expired")
+	}
+
+	if storedCode.Code != input.Code {
+		return VerificationCode{}, errors.New("incorrect code")
+	}
+
+	storedCode.IsVerified = true
+
+	mu.Lock()
+	verificationCodes[input.Email] = storedCode
+	mu.Unlock()
+
+	return storedCode, nil
 }

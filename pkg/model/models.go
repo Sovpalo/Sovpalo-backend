@@ -7,15 +7,14 @@ import (
 )
 
 type User struct {
-	ID            int64     `db:"id" json:"id"`
-	Email         string    `db:"email" json:"email"`
-	TelegramID    *int64    `db:"telegram_id" json:"telegram_id,omitempty"`
-	Username      string    `db:"username" json:"username"`
-	AvatarURL     *string   `db:"avatar_url" json:"avatar_url,omitempty"`
-	EmailVerified bool      `db:"email_verified" json:"email_verified"`
-	PasswordHash  string    `db:"password_hash" json:"-"`
-	CreatedAt     time.Time `db:"created_at" json:"created_at"`
-	UpdatedAt     time.Time `db:"updated_at" json:"updated_at"`
+	ID         int64     `db:"id" json:"id"`
+	Email      string    `db:"email" json:"email"`
+	TelegramID *int64    `db:"telegram_id" json:"telegram_id,omitempty"`
+	Username   string    `db:"username" json:"username"`
+	AvatarURL  *string   `db:"avatar_url" json:"avatar_url,omitempty"`
+	Password   string    `db:"password" json:"password"`
+	CreatedAt  time.Time `db:"created_at" json:"created_at"`
+	UpdatedAt  time.Time `db:"updated_at" json:"updated_at"`
 }
 
 type PasswordResetToken struct {
@@ -43,6 +42,48 @@ type GroupMember struct {
 	UserID   int64     `db:"user_id" json:"user_id"`
 	Role     string    `db:"role" json:"role"`
 	JoinedAt time.Time `db:"joined_at" json:"joined_at"`
+}
+
+type Company struct {
+	ID          int64     `db:"id" json:"id"`
+	Name        string    `db:"name" json:"name"`
+	Description *string   `db:"description" json:"description,omitempty"`
+	CreatedBy   int64     `db:"created_by" json:"created_by"`
+	CreatedAt   time.Time `db:"created_at" json:"created_at"`
+	UpdatedAt   time.Time `db:"updated_at" json:"updated_at"`
+}
+
+type CompanyMember struct {
+	ID        int64     `db:"id" json:"id"`
+	CompanyID int64     `db:"company_id" json:"company_id"`
+	UserID    int64     `db:"user_id" json:"user_id"`
+	Role      string    `db:"role" json:"role"`
+	JoinedAt  time.Time `db:"joined_at" json:"joined_at"`
+}
+
+type CompanyInvitation struct {
+	ID            int64      `db:"id" json:"id"`
+	CompanyID     int64      `db:"company_id" json:"company_id"`
+	InvitedUserID int64      `db:"invited_user_id" json:"invited_user_id"`
+	InvitedBy     int64      `db:"invited_by" json:"invited_by"`
+	Status        string     `db:"status" json:"status"`
+	CreatedAt     time.Time  `db:"created_at" json:"created_at"`
+	RespondedAt   *time.Time `db:"responded_at" json:"responded_at,omitempty"`
+}
+
+type CompanyInvitationView struct {
+	ID                int64     `db:"id" json:"id"`
+	CompanyID         int64     `db:"company_id" json:"company_id"`
+	CompanyName       string    `db:"company_name" json:"company_name"`
+	InvitedBy         int64     `db:"invited_by" json:"invited_by"`
+	InvitedByUsername string    `db:"invited_by_username" json:"invited_by_username"`
+	Status            string    `db:"status" json:"status"`
+	CreatedAt         time.Time `db:"created_at" json:"created_at"`
+}
+
+type CompanyUpdateInput struct {
+	Name        *string `json:"name,omitempty"`
+	Description *string `json:"description,omitempty"`
 }
 
 type Event struct {
@@ -129,4 +170,10 @@ type UserSession struct {
 	IPAddress        net.IP    `db:"ip_address" json:"ip_address,omitempty"`
 	ExpiresAt        time.Time `db:"expires_at" json:"expires_at"`
 	CreatedAt        time.Time `db:"created_at" json:"created_at"`
+}
+
+type UpdateUserInput struct {
+	FirstName  *string `json:"first_name,omitempty"`
+	SecondName *string `json:"second_name,omitempty"`
+	Email      *string `json:"email,omitempty"`
 }
