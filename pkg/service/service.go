@@ -8,12 +8,14 @@ import (
 type Service struct {
 	Authorization
 	Company
+	Event
 }
 
 func NewService(repos *repository.Repository) *Service {
 	return &Service{
 		Authorization: NewAuthService(repos.Authorization),
 		Company:       NewCompanyService(repos.Company),
+		Event:         NewEventService(repos.Event),
 	}
 }
 
@@ -37,4 +39,13 @@ type Company interface {
 	ListInvitations(userID int64) ([]model.CompanyInvitationView, error)
 	AcceptInvitation(inviteID int64, userID int64) error
 	DeclineInvitation(inviteID int64, userID int64) error
+}
+
+type Event interface {
+	CreateEvent(userID int64, input model.EventCreateInput) (int64, error)
+	GetEvent(eventID int64, userID int64) (model.Event, error)
+	ListEvents(userID int64) ([]model.Event, error)
+	ListCompanyEvents(companyID int64, userID int64) ([]model.Event, error)
+	UpdateEvent(eventID int64, userID int64, input model.EventUpdateInput) error
+	DeleteEvent(eventID int64, userID int64) error
 }

@@ -9,12 +9,14 @@ import (
 type Repository struct {
 	Authorization
 	Company
+	Event
 }
 
 func NewRepository(pool *pgxpool.Pool, cache *redis.Client) *Repository {
 	return &Repository{
 		Authorization: NewAuthRepository(pool, cache),
 		Company:       NewCompanyRepository(pool),
+		Event:         NewEventRepository(pool),
 	}
 }
 
@@ -35,4 +37,13 @@ type Company interface {
 	ListInvitations(userID int64) ([]model.CompanyInvitationView, error)
 	AcceptInvitation(inviteID int64, userID int64) error
 	DeclineInvitation(inviteID int64, userID int64) error
+}
+
+type Event interface {
+	CreateEvent(event model.Event) (int64, error)
+	GetEvent(eventID int64, userID int64) (model.Event, error)
+	ListEvents(userID int64) ([]model.Event, error)
+	ListCompanyEvents(companyID int64, userID int64) ([]model.Event, error)
+	UpdateEvent(eventID int64, userID int64, input model.EventUpdateInput) error
+	DeleteEvent(eventID int64, userID int64) error
 }

@@ -88,7 +88,8 @@ type CompanyUpdateInput struct {
 
 type Event struct {
 	ID          int64      `db:"id" json:"id"`
-	GroupID     int64      `db:"group_id" json:"group_id"`
+	GroupID     *int64     `db:"group_id" json:"group_id,omitempty"`
+	CompanyID   *int64     `db:"company_id" json:"company_id,omitempty"`
 	CreatedBy   int64      `db:"created_by" json:"created_by"`
 	Title       string     `db:"title" json:"title"`
 	Description *string    `db:"description" json:"description,omitempty"`

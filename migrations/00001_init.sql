@@ -21,6 +21,26 @@ CREATE TABLE password_reset_tokens (
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+CREATE TABLE groups (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    description TEXT,
+    avatar_url TEXT,
+    invite_code VARCHAR(50) UNIQUE,
+    created_by BIGINT NOT NULL REFERENCES users(id),
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE group_members (
+    id SERIAL PRIMARY KEY,
+    group_id BIGINT NOT NULL REFERENCES groups(id) ON DELETE CASCADE,
+    user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    role VARCHAR(20) NOT NULL DEFAULT 'member',
+    joined_at TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE(group_id, user_id)
+);
+
 CREATE TABLE events (
     id SERIAL PRIMARY KEY,
     group_id BIGINT NOT NULL REFERENCES groups(id) ON DELETE CASCADE,
