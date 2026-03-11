@@ -408,3 +408,66 @@ func (h *Handler) deleteCompanyEvent(c *gin.Context) {
 
 	c.JSON(http.StatusOK, statusResponse{Status: "ok"})
 }
+
+func (h *Handler) setCompanyEventAttendance(c *gin.Context) {
+	userID, err := getUserId(c)
+	if err != nil {
+		newErrorResponse(c, http.StatusUnauthorized, err.Error())
+		return
+	}
+
+	companyID, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		newErrorResponse(c, http.StatusBadRequest, "invalid company id")
+		return
+	}
+
+	eventID, err := strconv.ParseInt(c.Param("event_id"), 10, 64)
+	if err != nil {
+		newErrorResponse(c, http.StatusBadRequest, "invalid event id")
+		return
+	}
+
+	var input struct {
+		Status string `json:"status" binding:"required"`
+	}
+	if err := c.BindJSON(&input); err != nil {
+		newErrorResponse(c, http.StatusBadRequest, "invalid input body")
+		return
+	}
+
+	if err := h.services.Event.SetCompanyEventAttendance(companyID, eventID, int64(userID), input.Status); err != nil {
+		newErrorResponse(c, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, statusResponse{Status: "ok"})
+}
+
+func (h *Handler) listCompanyEventAttendance(c *gin.Context) {
+	userID, err := getUserId(c)
+	if err != nil {
+		newErrorResponse(c, http.StatusUnauthorized, err.Error())
+		return
+	}
+
+	companyID, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		newErrorResponse(c, http.StatusBadRequest, "invalid company id")
+		return
+	}
+
+	eventID, err := strconv.ParseInt(c.Param("event_id"), 10, 64)
+	if err != nil {
+		newErrorResponse(c, http.StatusBadRequest, "invalid event id")
+		return
+	}
+
+	attendance, err := h.services.Event.ListCompanyEventAttendance(companyID, eventID, int64(userID))
+	if err != nil {
+		newErrorResponse(c, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, attendance)
+}

@@ -260,3 +260,85 @@ func (r *EventPostgres) DeleteEvent(eventID int64, userID int64) error {
 	}
 	return nil
 }
+
+func (r *EventPostgres) SetCompanyEventAttendance(companyID int64, eventID int64, userID int64, status string) error {
+	ctx := context.Background()
+
+	var isMember bool
+	if err := r.pool.QueryRow(ctx,
+		"SELECT EXISTS (SELECT 1 FROM company_members WHERE company_id = $1 AND user_id = $2)",
+		companyID, userID,
+	).Scan(&isMember); err != nil {
+		return err
+	}
+	if !isMember {
+		return errors.New("user is not a member of the company")
+	}
+
+	var eventCompanyID *int64
+	if err := r.pool.QueryRow(ctx, "SELECT company_id FROM events WHERE id = $1", eventID).Scan(&eventCompanyID); err != nil {
+		return err
+	}
+	if eventCompanyID == nil || *eventCompanyID != companyID {
+		return pgx.ErrNoRows
+	}
+
+	query := `
+		INSERT INTO event_participants (event_id, user_id, status, notified)
+		VALUES ($1, $2, $3, FALSE)
+		ON CONFLICT (event_id, user_id)
+		DO UPDATE SET status = EXCLUDED.status, updated_at = NOW()
+	`
+	_, err := r.pool.Exec(ctx, query, eventID, userID, status)
+	return err
+}
+
+func (r *EventPostgres) ListCompanyEventAttendance(companyID int64, eventID int64, userID int64) ([]model.EventAttendanceView, error) {
+	ctx := context.Background()
+
+	var isMember bool
+	if err := r.pool.QueryRow(ctx,
+		"SELECT EXISTS (SELECT 1 FROM company_members WHERE company_id = $1 AND user_id = $2)",
+		companyID, userID,
+	).Scan(&isMember); err != nil {
+		return nil, err
+	}
+	if !isMember {
+		return nil, errors.New("user is not a member of the company")
+	}
+
+	var eventCompanyID *int64
+	if err := r.pool.QueryRow(ctx, "SELECT company_id FROM events WHERE id = $1", eventID).Scan(&eventCompanyID); err != nil {
+		return nil, err
+	}
+	if eventCompanyID == nil || *eventCompanyID != companyID {
+		return nil, pgx.ErrNoRows
+	}
+
+	query := `
+		SELECT cm.user_id,
+		       u.username,
+		       COALESCE(ep.status, 'unknown') AS status
+		FROM company_members cm
+		JOIN users u ON u.id = cm.user_id
+		LEFT JOIN event_participants ep
+		       ON ep.event_id = $1 AND ep.user_id = cm.user_id
+		WHERE cm.company_id = $2
+		ORDER BY u.username
+	`
+	rows, err := r.pool.Query(ctx, query, eventID, companyID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var attendance []model.EventAttendanceView
+	for rows.Next() {
+		var item model.EventAttendanceView
+		if err := rows.Scan(&item.UserID, &item.Username, &item.Status); err != nil {
+			return nil, err
+		}
+		attendance = append(attendance, item)
+	}
+	return attendance, rows.Err()
+}

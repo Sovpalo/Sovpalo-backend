@@ -82,6 +82,10 @@ func (h *Handler) InitRoutes() *gin.Engine {
 		companyEvents.PATCH("/:event_id", h.updateCompanyEvent)
 		// DELETE /companies/:id/events/:event_id - delete company event by id
 		companyEvents.DELETE("/:event_id", h.deleteCompanyEvent)
+		// POST /companies/:id/events/:event_id/attendance - set attendance (unknown/going/not_going)
+		companyEvents.POST("/:event_id/attendance", h.setCompanyEventAttendance)
+		// GET /companies/:id/events/:event_id/attendance - list attendance for event
+		companyEvents.GET("/:event_id/attendance", h.listCompanyEventAttendance)
 	}
 
 	return router

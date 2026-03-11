@@ -48,4 +48,6 @@ type Event interface {
 	ListCompanyEvents(companyID int64, userID int64) ([]model.Event, error)
 	UpdateEvent(eventID int64, userID int64, input model.EventUpdateInput) error
 	DeleteEvent(eventID int64, userID int64) error
+	SetCompanyEventAttendance(companyID int64, eventID int64, userID int64, status string) error
+	ListCompanyEventAttendance(companyID int64, eventID int64, userID int64) ([]model.EventAttendanceView, error)
 }

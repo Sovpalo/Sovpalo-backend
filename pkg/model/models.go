@@ -112,6 +112,12 @@ type EventParticipant struct {
 	UpdatedAt time.Time `db:"updated_at" json:"updated_at"`
 }
 
+type EventAttendanceView struct {
+	UserID   int64  `db:"user_id" json:"user_id"`
+	Username string `db:"username" json:"username"`
+	Status   string `db:"status" json:"status"`
+}
+
 type Idea struct {
 	ID          int64     `db:"id" json:"id"`
 	GroupID     int64     `db:"group_id" json:"group_id"`

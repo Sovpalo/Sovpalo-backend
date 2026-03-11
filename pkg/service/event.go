@@ -58,3 +58,16 @@ func (s *EventService) UpdateEvent(eventID int64, userID int64, input model.Even
 func (s *EventService) DeleteEvent(eventID int64, userID int64) error {
 	return s.repo.DeleteEvent(eventID, userID)
 }
+
+func (s *EventService) SetCompanyEventAttendance(companyID int64, eventID int64, userID int64, status string) error {
+	switch status {
+	case "unknown", "going", "not_going":
+		return s.repo.SetCompanyEventAttendance(companyID, eventID, userID, status)
+	default:
+		return errors.New("invalid status")
+	}
+}
+
+func (s *EventService) ListCompanyEventAttendance(companyID int64, eventID int64, userID int64) ([]model.EventAttendanceView, error) {
+	return s.repo.ListCompanyEventAttendance(companyID, eventID, userID)
+}

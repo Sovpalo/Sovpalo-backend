@@ -64,7 +64,7 @@ func (h *Handler) getCompany(c *gin.Context) {
 
 	company, err := h.services.Company.GetCompany(companyID, int64(userID))
 	if err != nil {
-		newErrorResponse(c, http.StatusNotFound, err.Error())
+		newErrorResponse(c, http.StatusNotFound, "company not found")
 		return
 	}
 
