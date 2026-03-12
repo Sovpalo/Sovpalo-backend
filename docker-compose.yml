@@ -11,6 +11,11 @@ services:
       - "5433:5432"
     volumes:
       - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-sovpalo}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
   redis:
     image: redis:7
@@ -18,6 +23,50 @@ services:
     restart: unless-stopped
     ports:
       - "6379:6379"
+
+  migrate:
+    build: .
+    container_name: sovpalo-migrate
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_USER: ${DB_USER:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:-postgres}
+      DB_NAME: ${DB_NAME:-sovpalo}
+      DB_SSLMODE: disable
+    command: ["./migrate", "up"]
+    restart: "no"
+
+  api:
+    build: .
+    container_name: sovpalo-api
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      migrate:
+        condition: service_completed_successfully
+    environment:
+      APP_PORT: 8000
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_USER: ${DB_USER:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:-postgres}
+      DB_NAME: ${DB_NAME:-sovpalo}
+      DB_SSLMODE: disable
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+      REDIS_DB: ${REDIS_DB:-0}
+      JWT_SECRET: ${JWT_SECRET:-change_me}
+      PASSWORD_SALT: ${PASSWORD_SALT:-change_me}
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
 
 volumes:
   db-data:
