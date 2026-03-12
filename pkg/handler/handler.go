@@ -88,6 +88,22 @@ func (h *Handler) InitRoutes() *gin.Engine {
 		companyEvents.GET("/:event_id/attendance", h.listCompanyEventAttendance)
 	}
 
+	availability := router.Group("/companies/:id/availability", h.userIdentity)
+	{
+		// POST /companies/:id/availability - add availability interval for current user
+		availability.POST("", h.createAvailability)
+		// GET /companies/:id/availability - list availability of current user in company
+		availability.GET("", h.listAvailability)
+		// GET /companies/:id/availability/all - list availability of all members in company
+		availability.GET("/all", h.listCompanyAvailability)
+		// PATCH /companies/:id/availability/:availability_id - update availability interval
+		availability.PATCH("/:availability_id", h.updateAvailability)
+		// DELETE /companies/:id/availability/:availability_id - delete availability interval
+		availability.DELETE("/:availability_id", h.deleteAvailability)
+		// POST /companies/:id/availability/intersections - get intersections in range
+		availability.POST("/intersections", h.getAvailabilityIntersections)
+	}
+
 	return router
 }
 

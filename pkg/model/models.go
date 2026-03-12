@@ -134,12 +134,18 @@ type Idea struct {
 type UserAvailability struct {
 	ID        int64     `db:"id" json:"id"`
 	UserID    int64     `db:"user_id" json:"user_id"`
-	GroupID   int64     `db:"group_id" json:"group_id"`
+	GroupID   *int64    `db:"group_id" json:"group_id,omitempty"`
+	CompanyID *int64    `db:"company_id" json:"company_id,omitempty"`
 	StartTime time.Time `db:"start_time" json:"start_time"`
 	EndTime   time.Time `db:"end_time" json:"end_time"`
 	Note      *string   `db:"note" json:"note,omitempty"`
 	CreatedAt time.Time `db:"created_at" json:"created_at"`
 	UpdatedAt time.Time `db:"updated_at" json:"updated_at"`
+}
+
+type AvailabilityIntersection struct {
+	StartTime time.Time `json:"start_time"`
+	EndTime   time.Time `json:"end_time"`
 }
 
 type MediaArchive struct {

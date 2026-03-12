@@ -10,6 +10,7 @@ type Repository struct {
 	Authorization
 	Company
 	Event
+	Availability
 }
 
 func NewRepository(pool *pgxpool.Pool, cache *redis.Client) *Repository {
@@ -17,6 +18,7 @@ func NewRepository(pool *pgxpool.Pool, cache *redis.Client) *Repository {
 		Authorization: NewAuthRepository(pool, cache),
 		Company:       NewCompanyRepository(pool),
 		Event:         NewEventRepository(pool),
+		Availability:  NewAvailabilityRepository(pool),
 	}
 }
 
@@ -48,4 +50,14 @@ type Event interface {
 	DeleteEvent(eventID int64, userID int64) error
 	SetCompanyEventAttendance(companyID int64, eventID int64, userID int64, status string) error
 	ListCompanyEventAttendance(companyID int64, eventID int64, userID int64) ([]model.EventAttendanceView, error)
+}
+
+type Availability interface {
+	CreateAvailability(companyID int64, userID int64, input model.AvailabilityCreateInput) (int64, error)
+	ListAvailability(companyID int64, userID int64) ([]model.UserAvailability, error)
+	ListCompanyAvailability(companyID int64, userID int64) ([]model.UserAvailability, error)
+	UpdateAvailability(companyID int64, userID int64, availabilityID int64, input model.AvailabilityCreateInput) error
+	DeleteAvailability(companyID int64, userID int64, availabilityID int64) error
+	ListCompanyMemberIDs(companyID int64) ([]int64, error)
+	ListAvailabilityInRange(companyID int64, start time.Time, end time.Time) ([]model.UserAvailability, error)
 }

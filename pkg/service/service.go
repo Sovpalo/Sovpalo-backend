@@ -9,6 +9,7 @@ type Service struct {
 	Authorization
 	Company
 	Event
+	Availability
 }
 
 func NewService(repos *repository.Repository) *Service {
@@ -16,6 +17,7 @@ func NewService(repos *repository.Repository) *Service {
 		Authorization: NewAuthService(repos.Authorization),
 		Company:       NewCompanyService(repos.Company),
 		Event:         NewEventService(repos.Event),
+		Availability:  NewAvailabilityService(repos.Availability),
 	}
 }
 
@@ -50,4 +52,13 @@ type Event interface {
 	DeleteEvent(eventID int64, userID int64) error
 	SetCompanyEventAttendance(companyID int64, eventID int64, userID int64, status string) error
 	ListCompanyEventAttendance(companyID int64, eventID int64, userID int64) ([]model.EventAttendanceView, error)
+}
+
+type Availability interface {
+	CreateAvailability(companyID int64, userID int64, input model.AvailabilityCreateInput) (int64, error)
+	ListAvailability(companyID int64, userID int64) ([]model.UserAvailability, error)
+	ListCompanyAvailability(companyID int64, userID int64) ([]model.UserAvailability, error)
+	UpdateAvailability(companyID int64, userID int64, availabilityID int64, input model.AvailabilityCreateInput) error
+	DeleteAvailability(companyID int64, userID int64, availabilityID int64) error
+	GetAvailabilityIntersections(companyID int64, userID int64, input model.AvailabilityRangeInput) ([]model.AvailabilityIntersection, error)
 }
