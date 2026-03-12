@@ -42,7 +42,7 @@ func (r *AuthPostgres) CreateUser(user model.User) (int, error) {
 
 func (r *AuthPostgres) GetUser(email, password string) (model.User, error) {
 	var user model.User
-	query := "SELECT id FROM users WHERE email = $1 AND password_hash = $2"
+	query := "SELECT id FROM users WHERE email = $1 AND password = $2"
 	err := r.pool.QueryRow(context.Background(), query, email, password).Scan(&user.ID)
 	return user, err
 }
