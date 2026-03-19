@@ -206,3 +206,25 @@ func (h *Handler) declineInvitation(c *gin.Context) {
 
 	c.JSON(http.StatusOK, statusResponse{Status: "ok"})
 }
+
+func (h *Handler) listCompanyMembers(c *gin.Context) {
+	userID, err := getUserId(c)
+	if err != nil {
+		newErrorResponse(c, http.StatusUnauthorized, err.Error())
+		return
+	}
+
+	companyID, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		newErrorResponse(c, http.StatusBadRequest, "invalid company id")
+		return
+	}
+
+	members, err := h.services.Company.ListCompanyMembers(companyID, int64(userID))
+	if err != nil {
+		newErrorResponse(c, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, members)
+}

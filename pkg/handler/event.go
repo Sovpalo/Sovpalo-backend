@@ -471,3 +471,49 @@ func (h *Handler) listCompanyEventAttendance(c *gin.Context) {
 
 	c.JSON(http.StatusOK, attendance)
 }
+
+func (h *Handler) listCompanyEventAttendanceSummary(c *gin.Context) {
+	userID, err := getUserId(c)
+	if err != nil {
+		newErrorResponse(c, http.StatusUnauthorized, err.Error())
+		return
+	}
+
+	companyID, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		newErrorResponse(c, http.StatusBadRequest, "invalid company id")
+		return
+	}
+
+	eventID, err := strconv.ParseInt(c.Param("event_id"), 10, 64)
+	if err != nil {
+		newErrorResponse(c, http.StatusBadRequest, "invalid event id")
+		return
+	}
+
+	attendance, err := h.services.Event.ListCompanyEventAttendance(companyID, eventID, int64(userID))
+	if err != nil {
+		newErrorResponse(c, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	type summary struct {
+		Going    []string `json:"going"`
+		NotGoing []string `json:"not_going"`
+		Unknown  []string `json:"unknown"`
+	}
+
+	result := summary{}
+	for _, item := range attendance {
+		switch item.Status {
+		case "going":
+			result.Going = append(result.Going, item.Username)
+		case "not_going":
+			result.NotGoing = append(result.NotGoing, item.Username)
+		default:
+			result.Unknown = append(result.Unknown, item.Username)
+		}
+	}
+
+	c.JSON(http.StatusOK, result)
+}

@@ -54,6 +54,8 @@ func (h *Handler) InitRoutes() *gin.Engine {
 		companies.POST("/invitations/:id/accept", h.acceptInvitation)
 		// отклонить приглашение в компанию (по id приглашения) - удаляет приглашение
 		companies.POST("/invitations/:id/decline", h.declineInvitation)
+		// получить список участников компании
+		companies.GET("/:id/members", h.listCompanyMembers)
 	}
 
 	events := router.Group("/events", h.userIdentity)
@@ -86,6 +88,18 @@ func (h *Handler) InitRoutes() *gin.Engine {
 		companyEvents.POST("/:event_id/attendance", h.setCompanyEventAttendance)
 		// GET /companies/:id/events/:event_id/attendance - list attendance for event
 		companyEvents.GET("/:event_id/attendance", h.listCompanyEventAttendance)
+		// GET /companies/:id/events/:event_id/attendance/summary - attendance summary
+		companyEvents.GET("/:event_id/attendance/summary", h.listCompanyEventAttendanceSummary)
+	}
+
+	companyIdeas := router.Group("/companies/:id/ideas", h.userIdentity)
+	{
+		// POST /companies/:id/ideas - create idea for company
+		companyIdeas.POST("", h.createCompanyIdea)
+		// GET /companies/:id/ideas - list company ideas
+		companyIdeas.GET("", h.listCompanyIdeas)
+		// GET /companies/:id/ideas/:idea_id - get company idea by id
+		companyIdeas.GET("/:idea_id", h.getCompanyIdea)
 	}
 
 	availability := router.Group("/companies/:id/availability", h.userIdentity)

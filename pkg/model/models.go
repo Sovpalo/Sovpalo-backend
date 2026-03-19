@@ -61,6 +61,12 @@ type CompanyMember struct {
 	JoinedAt  time.Time `db:"joined_at" json:"joined_at"`
 }
 
+type CompanyMemberView struct {
+	UserID   int64  `db:"user_id" json:"user_id"`
+	Username string `db:"username" json:"username"`
+	Role     string `db:"role" json:"role"`
+}
+
 type CompanyInvitation struct {
 	ID            int64      `db:"id" json:"id"`
 	CompanyID     int64      `db:"company_id" json:"company_id"`
@@ -120,7 +126,8 @@ type EventAttendanceView struct {
 
 type Idea struct {
 	ID          int64     `db:"id" json:"id"`
-	GroupID     int64     `db:"group_id" json:"group_id"`
+	GroupID     *int64    `db:"group_id" json:"group_id,omitempty"`
+	CompanyID   *int64    `db:"company_id" json:"company_id,omitempty"`
 	CreatedBy   int64     `db:"created_by" json:"created_by"`
 	Title       string    `db:"title" json:"title"`
 	Description *string   `db:"description" json:"description,omitempty"`
@@ -129,6 +136,15 @@ type Idea struct {
 	IsSaved     bool      `db:"is_saved" json:"is_saved"`
 	CreatedAt   time.Time `db:"created_at" json:"created_at"`
 	UpdatedAt   time.Time `db:"updated_at" json:"updated_at"`
+}
+
+type IdeaView struct {
+	ID                int64   `db:"id" json:"id"`
+	Title             string  `db:"title" json:"title"`
+	Description       *string `db:"description" json:"description,omitempty"`
+	CompanyID         int64   `db:"company_id" json:"company_id"`
+	CreatedBy         int64   `db:"created_by" json:"created_by"`
+	CreatedByUsername string  `db:"created_by_username" json:"created_by_username"`
 }
 
 type UserAvailability struct {

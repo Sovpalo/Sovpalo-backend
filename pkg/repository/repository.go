@@ -13,6 +13,7 @@ type Repository struct {
 	Company
 	Event
 	Availability
+	Idea
 }
 
 func NewRepository(pool *pgxpool.Pool, cache *redis.Client) *Repository {
@@ -21,6 +22,7 @@ func NewRepository(pool *pgxpool.Pool, cache *redis.Client) *Repository {
 		Company:       NewCompanyRepository(pool),
 		Event:         NewEventRepository(pool),
 		Availability:  NewAvailabilityRepository(pool),
+		Idea:          NewIdeaRepository(pool),
 	}
 }
 
@@ -41,6 +43,8 @@ type Company interface {
 	ListInvitations(userID int64) ([]model.CompanyInvitationView, error)
 	AcceptInvitation(inviteID int64, userID int64) error
 	DeclineInvitation(inviteID int64, userID int64) error
+
+	ListCompanyMembers(companyID int64, userID int64) ([]model.CompanyMemberView, error)
 }
 
 type Event interface {
@@ -62,4 +66,10 @@ type Availability interface {
 	DeleteAvailability(companyID int64, userID int64, availabilityID int64) error
 	ListCompanyMemberIDs(companyID int64) ([]int64, error)
 	ListAvailabilityInRange(companyID int64, start time.Time, end time.Time) ([]model.UserAvailability, error)
+}
+
+type Idea interface {
+	CreateCompanyIdea(companyID int64, userID int64, input model.IdeaCreateInput) (int64, error)
+	ListCompanyIdeas(companyID int64, userID int64) ([]model.IdeaView, error)
+	GetCompanyIdea(companyID int64, userID int64, ideaID int64) (model.IdeaView, error)
 }

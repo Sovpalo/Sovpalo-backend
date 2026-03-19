@@ -10,6 +10,7 @@ type Service struct {
 	Company
 	Event
 	Availability
+	Idea
 }
 
 func NewService(repos *repository.Repository) *Service {
@@ -18,6 +19,7 @@ func NewService(repos *repository.Repository) *Service {
 		Company:       NewCompanyService(repos.Company),
 		Event:         NewEventService(repos.Event),
 		Availability:  NewAvailabilityService(repos.Availability),
+		Idea:          NewIdeaService(repos.Idea),
 	}
 }
 
@@ -41,6 +43,7 @@ type Company interface {
 	ListInvitations(userID int64) ([]model.CompanyInvitationView, error)
 	AcceptInvitation(inviteID int64, userID int64) error
 	DeclineInvitation(inviteID int64, userID int64) error
+	ListCompanyMembers(companyID int64, userID int64) ([]model.CompanyMemberView, error)
 }
 
 type Event interface {
@@ -61,4 +64,10 @@ type Availability interface {
 	UpdateAvailability(companyID int64, userID int64, availabilityID int64, input model.AvailabilityCreateInput) error
 	DeleteAvailability(companyID int64, userID int64, availabilityID int64) error
 	GetAvailabilityIntersections(companyID int64, userID int64, input model.AvailabilityRangeInput) ([]model.AvailabilityIntersection, error)
+}
+
+type Idea interface {
+	CreateCompanyIdea(companyID int64, userID int64, input model.IdeaCreateInput) (int64, error)
+	ListCompanyIdeas(companyID int64, userID int64) ([]model.IdeaView, error)
+	GetCompanyIdea(companyID int64, userID int64, ideaID int64) (model.IdeaView, error)
 }

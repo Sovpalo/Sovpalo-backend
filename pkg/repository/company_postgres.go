@@ -343,3 +343,41 @@ func (r *CompanyPostgres) DeclineInvitation(inviteID int64, userID int64) error 
 	}
 	return nil
 }
+
+func (r *CompanyPostgres) ListCompanyMembers(companyID int64, userID int64) ([]model.CompanyMemberView, error) {
+	ctx := context.Background()
+
+	var isMember bool
+	if err := r.pool.QueryRow(ctx,
+		"SELECT EXISTS (SELECT 1 FROM company_members WHERE company_id = $1 AND user_id = $2)",
+		companyID, userID,
+	).Scan(&isMember); err != nil {
+		return nil, err
+	}
+	if !isMember {
+		return nil, errors.New("user is not a member of the company")
+	}
+
+	query := `
+		SELECT cm.user_id, u.username, cm.role
+		FROM company_members cm
+		JOIN users u ON u.id = cm.user_id
+		WHERE cm.company_id = $1
+		ORDER BY u.username
+	`
+	rows, err := r.pool.Query(ctx, query, companyID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var members []model.CompanyMemberView
+	for rows.Next() {
+		var member model.CompanyMemberView
+		if err := rows.Scan(&member.UserID, &member.Username, &member.Role); err != nil {
+			return nil, err
+		}
+		members = append(members, member)
+	}
+	return members, rows.Err()
+}
