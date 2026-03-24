@@ -504,6 +504,7 @@ func (h *Handler) listCompanyEventAttendanceSummary(c *gin.Context) {
 	}
 
 	result := summary{}
+	currentStatus := "unknown"
 	for _, item := range attendance {
 		switch item.Status {
 		case "going":
@@ -513,7 +514,15 @@ func (h *Handler) listCompanyEventAttendanceSummary(c *gin.Context) {
 		default:
 			result.Unknown = append(result.Unknown, item.Username)
 		}
+		if item.UserID == int64(userID) {
+			currentStatus = item.Status
+		}
 	}
 
-	c.JSON(http.StatusOK, result)
+	c.JSON(http.StatusOK, gin.H{
+		"going":               result.Going,
+		"not_going":           result.NotGoing,
+		"unknown":             result.Unknown,
+		"current_user_status": currentStatus,
+	})
 }
