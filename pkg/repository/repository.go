@@ -73,4 +73,6 @@ type Idea interface {
 	CreateCompanyIdea(companyID int64, userID int64, input model.IdeaCreateInput) (int64, error)
 	ListCompanyIdeas(companyID int64, userID int64) ([]model.IdeaView, error)
 	GetCompanyIdea(companyID int64, userID int64, ideaID int64) (model.IdeaView, error)
+	LikeCompanyIdea(companyID int64, userID int64, ideaID int64) error
+	UnlikeCompanyIdea(companyID int64, userID int64, ideaID int64) error
 }

@@ -29,3 +29,11 @@ func (s *IdeaService) ListCompanyIdeas(companyID int64, userID int64) ([]model.I
 func (s *IdeaService) GetCompanyIdea(companyID int64, userID int64, ideaID int64) (model.IdeaView, error) {
 	return s.repo.GetCompanyIdea(companyID, userID, ideaID)
 }
+
+func (s *IdeaService) LikeCompanyIdea(companyID int64, userID int64, ideaID int64) error {
+	return s.repo.LikeCompanyIdea(companyID, userID, ideaID)
+}
+
+func (s *IdeaService) UnlikeCompanyIdea(companyID int64, userID int64, ideaID int64) error {
+	return s.repo.UnlikeCompanyIdea(companyID, userID, ideaID)
+}

@@ -145,6 +145,8 @@ type IdeaView struct {
 	CompanyID         int64   `db:"company_id" json:"company_id"`
 	CreatedBy         int64   `db:"created_by" json:"created_by"`
 	CreatedByUsername string  `db:"created_by_username" json:"created_by_username"`
+	LikesCount        int64   `db:"likes_count" json:"likes_count"`
+	LikedByCurrent    bool    `db:"liked_by_current" json:"liked_by_current"`
 }
 
 type UserAvailability struct {
