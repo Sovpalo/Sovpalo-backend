@@ -46,7 +46,7 @@ func (h *Handler) InitRoutes() *gin.Engine {
 		// удаление компании (только владелец может удалять) - удаляет компанию и всех её членов
 		companies.DELETE("/:id", h.deleteCompany)
 
-		// приглашение пользователя в компанию, возвращает id приглашения
+		// приглашение пользователя в компанию (может любой участник), возвращает id приглашения
 		companies.POST("/:id/invitations", h.inviteToCompany)
 		// получение списка приглашений в компании, которые получил пользователь - возвращает список компаний и id приглашения для каждой из них
 		companies.GET("/invitations", h.listInvitations)
@@ -56,6 +56,8 @@ func (h *Handler) InitRoutes() *gin.Engine {
 		companies.POST("/invitations/:id/decline", h.declineInvitation)
 		// получить список участников компании
 		companies.GET("/:id/members", h.listCompanyMembers)
+		// удалить участника компании (только владелец)
+		companies.DELETE("/:id/members/:user_id", h.removeCompanyMember)
 	}
 
 	events := router.Group("/events", h.userIdentity)

@@ -154,12 +154,15 @@ func (r *CompanyPostgres) CreateInvitation(companyID int64, invitedBy int64, use
 	}
 	defer tx.Rollback(ctx)
 
-	var ownerID int64
-	if err := tx.QueryRow(ctx, "SELECT created_by FROM companies WHERE id = $1", companyID).Scan(&ownerID); err != nil {
+	var isMember bool
+	if err := tx.QueryRow(ctx,
+		"SELECT EXISTS (SELECT 1 FROM company_members WHERE company_id = $1 AND user_id = $2)",
+		companyID, invitedBy,
+	).Scan(&isMember); err != nil {
 		return model.CompanyInvitation{}, err
 	}
-	if ownerID != invitedBy {
-		return model.CompanyInvitation{}, errors.New("only company owner can invite")
+	if !isMember {
+		return model.CompanyInvitation{}, errors.New("user is not a member of the company")
 	}
 
 	var invitedUserID int64
@@ -380,4 +383,29 @@ func (r *CompanyPostgres) ListCompanyMembers(companyID int64, userID int64) ([]m
 		members = append(members, member)
 	}
 	return members, rows.Err()
+}
+
+func (r *CompanyPostgres) RemoveCompanyMember(companyID int64, ownerID int64, memberUserID int64) error {
+	ctx := context.Background()
+
+	var creatorID int64
+	if err := r.pool.QueryRow(ctx, "SELECT created_by FROM companies WHERE id = $1", companyID).Scan(&creatorID); err != nil {
+		return err
+	}
+	if creatorID != ownerID {
+		return errors.New("only company owner can remove members")
+	}
+	if memberUserID == creatorID {
+		return errors.New("cannot remove company owner")
+	}
+
+	query := "DELETE FROM company_members WHERE company_id = $1 AND user_id = $2"
+	tag, err := r.pool.Exec(ctx, query, companyID, memberUserID)
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() == 0 {
+		return pgx.ErrNoRows
+	}
+	return nil
 }

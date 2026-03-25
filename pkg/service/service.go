@@ -44,6 +44,7 @@ type Company interface {
 	AcceptInvitation(inviteID int64, userID int64) error
 	DeclineInvitation(inviteID int64, userID int64) error
 	ListCompanyMembers(companyID int64, userID int64) ([]model.CompanyMemberView, error)
+	RemoveCompanyMember(companyID int64, ownerID int64, memberUserID int64) error
 }
 
 type Event interface {

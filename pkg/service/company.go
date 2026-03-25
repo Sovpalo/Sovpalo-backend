@@ -65,3 +65,7 @@ func (s *CompanyService) DeclineInvitation(inviteID int64, userID int64) error {
 func (s *CompanyService) ListCompanyMembers(companyID int64, userID int64) ([]model.CompanyMemberView, error) {
 	return s.repo.ListCompanyMembers(companyID, userID)
 }
+
+func (s *CompanyService) RemoveCompanyMember(companyID int64, ownerID int64, memberUserID int64) error {
+	return s.repo.RemoveCompanyMember(companyID, ownerID, memberUserID)
+}

@@ -226,5 +226,35 @@ func (h *Handler) listCompanyMembers(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, members)
+	c.JSON(http.StatusOK, gin.H{
+		"count":   len(members),
+		"members": members,
+	})
+}
+
+func (h *Handler) removeCompanyMember(c *gin.Context) {
+	userID, err := getUserId(c)
+	if err != nil {
+		newErrorResponse(c, http.StatusUnauthorized, err.Error())
+		return
+	}
+
+	companyID, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		newErrorResponse(c, http.StatusBadRequest, "invalid company id")
+		return
+	}
+
+	memberUserID, err := strconv.ParseInt(c.Param("user_id"), 10, 64)
+	if err != nil {
+		newErrorResponse(c, http.StatusBadRequest, "invalid user id")
+		return
+	}
+
+	if err := h.services.Company.RemoveCompanyMember(companyID, int64(userID), memberUserID); err != nil {
+		newErrorResponse(c, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, statusResponse{Status: "ok"})
 }
