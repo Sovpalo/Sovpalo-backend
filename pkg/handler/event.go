@@ -200,6 +200,9 @@ func (h *Handler) listCompanyEvents(c *gin.Context) {
 		return
 	}
 
+	if events == nil {
+		events = []model.Event{}
+	}
 	c.JSON(http.StatusOK, events)
 }
 

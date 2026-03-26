@@ -226,10 +226,10 @@ func (h *Handler) listCompanyMembers(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"count":   len(members),
-		"members": members,
-	})
+	if members == nil {
+		members = []model.CompanyMemberView{}
+	}
+	c.JSON(http.StatusOK, members)
 }
 
 func (h *Handler) removeCompanyMember(c *gin.Context) {

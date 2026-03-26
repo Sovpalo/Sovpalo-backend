@@ -55,6 +55,9 @@ func (h *Handler) listCompanyIdeas(c *gin.Context) {
 		return
 	}
 
+	if ideas == nil {
+		ideas = []model.IdeaView{}
+	}
 	c.JSON(http.StatusOK, ideas)
 }
 

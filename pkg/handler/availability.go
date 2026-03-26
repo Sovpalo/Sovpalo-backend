@@ -77,6 +77,9 @@ func (h *Handler) listAvailability(c *gin.Context) {
 		return
 	}
 
+	if items == nil {
+		items = []model.UserAvailability{}
+	}
 	c.JSON(http.StatusOK, items)
 }
 
@@ -99,6 +102,9 @@ func (h *Handler) listCompanyAvailability(c *gin.Context) {
 		return
 	}
 
+	if items == nil {
+		items = []model.UserAvailability{}
+	}
 	c.JSON(http.StatusOK, items)
 }
 
