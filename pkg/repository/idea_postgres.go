@@ -23,8 +23,8 @@ func (r *IdeaPostgres) CreateCompanyIdea(companyID int64, userID int64, input mo
 	}
 
 	query := `
-		INSERT INTO ideas (group_id, company_id, created_by, title, description, source)
-		VALUES (NULL, $1, $2, $3, $4, 'manual')
+		INSERT INTO ideas (company_id, created_by, title, description, source)
+		VALUES ($1, $2, $3, $4, 'manual')
 		RETURNING id
 	`
 	var id int64

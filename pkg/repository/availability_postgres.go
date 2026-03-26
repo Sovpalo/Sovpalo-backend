@@ -38,7 +38,7 @@ func (r *AvailabilityPostgres) CreateAvailability(companyID int64, userID int64,
 func (r *AvailabilityPostgres) ListAvailability(companyID int64, userID int64) ([]model.UserAvailability, error) {
 	ctx := context.Background()
 	query := `
-		SELECT id, user_id, group_id, company_id, start_time, end_time, note, created_at, updated_at
+		SELECT id, user_id, company_id, start_time, end_time, note, created_at, updated_at
 		FROM user_availability
 		WHERE company_id = $1 AND user_id = $2
 		ORDER BY start_time
@@ -55,7 +55,6 @@ func (r *AvailabilityPostgres) ListAvailability(companyID int64, userID int64) (
 		if err := rows.Scan(
 			&item.ID,
 			&item.UserID,
-			&item.GroupID,
 			&item.CompanyID,
 			&item.StartTime,
 			&item.EndTime,
@@ -85,7 +84,7 @@ func (r *AvailabilityPostgres) ListCompanyAvailability(companyID int64, userID i
 	}
 
 	query := `
-		SELECT id, user_id, group_id, company_id, start_time, end_time, note, created_at, updated_at
+		SELECT id, user_id, company_id, start_time, end_time, note, created_at, updated_at
 		FROM user_availability
 		WHERE company_id = $1
 		ORDER BY user_id, start_time
@@ -102,7 +101,6 @@ func (r *AvailabilityPostgres) ListCompanyAvailability(companyID int64, userID i
 		if err := rows.Scan(
 			&item.ID,
 			&item.UserID,
-			&item.GroupID,
 			&item.CompanyID,
 			&item.StartTime,
 			&item.EndTime,
@@ -173,7 +171,7 @@ func (r *AvailabilityPostgres) ListCompanyMemberIDs(companyID int64) ([]int64, e
 func (r *AvailabilityPostgres) ListAvailabilityInRange(companyID int64, start time.Time, end time.Time) ([]model.UserAvailability, error) {
 	ctx := context.Background()
 	query := `
-		SELECT id, user_id, group_id, company_id, start_time, end_time, note, created_at, updated_at
+		SELECT id, user_id, company_id, start_time, end_time, note, created_at, updated_at
 		FROM user_availability
 		WHERE company_id = $1
 		  AND start_time < $3
@@ -192,7 +190,6 @@ func (r *AvailabilityPostgres) ListAvailabilityInRange(companyID int64, start ti
 		if err := rows.Scan(
 			&item.ID,
 			&item.UserID,
-			&item.GroupID,
 			&item.CompanyID,
 			&item.StartTime,
 			&item.EndTime,

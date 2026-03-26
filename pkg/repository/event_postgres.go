@@ -28,15 +28,14 @@ func (r *EventPostgres) CreateEvent(event model.Event) (int64, error) {
 	}
 
 	query := `
-		INSERT INTO events (group_id, company_id, created_by, title, description, start_time, end_time, place_name, place_link, status)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'pending')
+		INSERT INTO events (company_id, created_by, title, description, start_time, end_time, place_name, place_link, status)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'pending')
 		RETURNING id
 	`
 	var id int64
 	err := r.pool.QueryRow(
 		ctx,
 		query,
-		event.GroupID,
 		event.CompanyID,
 		event.CreatedBy,
 		event.Title,
@@ -56,7 +55,7 @@ func (r *EventPostgres) GetEvent(eventID int64, userID int64) (model.Event, erro
 	ctx := context.Background()
 	var event model.Event
 	query := `
-		SELECT e.id, e.group_id, e.company_id, e.created_by, e.title, e.description, e.start_time, e.end_time,
+		SELECT e.id, e.company_id, e.created_by, e.title, e.description, e.start_time, e.end_time,
 		       e.place_name, e.place_link, e.status, e.created_at, e.updated_at
 		FROM events e
 		LEFT JOIN company_members cm ON cm.company_id = e.company_id AND cm.user_id = $2
@@ -68,7 +67,6 @@ func (r *EventPostgres) GetEvent(eventID int64, userID int64) (model.Event, erro
 	`
 	err := r.pool.QueryRow(ctx, query, eventID, userID).Scan(
 		&event.ID,
-		&event.GroupID,
 		&event.CompanyID,
 		&event.CreatedBy,
 		&event.Title,
@@ -90,7 +88,7 @@ func (r *EventPostgres) GetEvent(eventID int64, userID int64) (model.Event, erro
 func (r *EventPostgres) ListEvents(userID int64) ([]model.Event, error) {
 	ctx := context.Background()
 	query := `
-		SELECT DISTINCT e.id, e.group_id, e.company_id, e.created_by, e.title, e.description, e.start_time, e.end_time,
+		SELECT DISTINCT e.id, e.company_id, e.created_by, e.title, e.description, e.start_time, e.end_time,
 		       e.place_name, e.place_link, e.status, e.created_at, e.updated_at
 		FROM events e
 		LEFT JOIN company_members cm ON cm.company_id = e.company_id AND cm.user_id = $1
@@ -109,7 +107,6 @@ func (r *EventPostgres) ListEvents(userID int64) ([]model.Event, error) {
 		var event model.Event
 		if err := rows.Scan(
 			&event.ID,
-			&event.GroupID,
 			&event.CompanyID,
 			&event.CreatedBy,
 			&event.Title,
@@ -143,7 +140,7 @@ func (r *EventPostgres) ListCompanyEvents(companyID int64, userID int64) ([]mode
 	}
 
 	query := `
-		SELECT e.id, e.group_id, e.company_id, e.created_by, e.title, e.description, e.start_time, e.end_time,
+		SELECT e.id, e.company_id, e.created_by, e.title, e.description, e.start_time, e.end_time,
 		       e.place_name, e.place_link, e.status, e.created_at, e.updated_at
 		FROM events e
 		WHERE e.company_id = $1
@@ -160,7 +157,6 @@ func (r *EventPostgres) ListCompanyEvents(companyID int64, userID int64) ([]mode
 		var event model.Event
 		if err := rows.Scan(
 			&event.ID,
-			&event.GroupID,
 			&event.CompanyID,
 			&event.CreatedBy,
 			&event.Title,

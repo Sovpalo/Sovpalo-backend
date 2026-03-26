@@ -25,25 +25,6 @@ type PasswordResetToken struct {
 	CreatedAt time.Time `db:"created_at" json:"created_at"`
 }
 
-type Group struct {
-	ID          int64     `db:"id" json:"id"`
-	Name        string    `db:"name" json:"name"`
-	Description *string   `db:"description" json:"description,omitempty"`
-	AvatarURL   *string   `db:"avatar_url" json:"avatar_url,omitempty"`
-	InviteCode  *string   `db:"invite_code" json:"invite_code,omitempty"`
-	CreatedBy   int64     `db:"created_by" json:"created_by"`
-	CreatedAt   time.Time `db:"created_at" json:"created_at"`
-	UpdatedAt   time.Time `db:"updated_at" json:"updated_at"`
-}
-
-type GroupMember struct {
-	ID       int64     `db:"id" json:"id"`
-	GroupID  int64     `db:"group_id" json:"group_id"`
-	UserID   int64     `db:"user_id" json:"user_id"`
-	Role     string    `db:"role" json:"role"`
-	JoinedAt time.Time `db:"joined_at" json:"joined_at"`
-}
-
 type Company struct {
 	ID          int64     `db:"id" json:"id"`
 	Name        string    `db:"name" json:"name"`
@@ -94,7 +75,6 @@ type CompanyUpdateInput struct {
 
 type Event struct {
 	ID          int64      `db:"id" json:"id"`
-	GroupID     *int64     `db:"group_id" json:"group_id,omitempty"`
 	CompanyID   *int64     `db:"company_id" json:"company_id,omitempty"`
 	CreatedBy   int64      `db:"created_by" json:"created_by"`
 	Title       string     `db:"title" json:"title"`
@@ -126,7 +106,6 @@ type EventAttendanceView struct {
 
 type Idea struct {
 	ID          int64     `db:"id" json:"id"`
-	GroupID     *int64    `db:"group_id" json:"group_id,omitempty"`
 	CompanyID   *int64    `db:"company_id" json:"company_id,omitempty"`
 	CreatedBy   int64     `db:"created_by" json:"created_by"`
 	Title       string    `db:"title" json:"title"`
@@ -152,7 +131,6 @@ type IdeaView struct {
 type UserAvailability struct {
 	ID        int64     `db:"id" json:"id"`
 	UserID    int64     `db:"user_id" json:"user_id"`
-	GroupID   *int64    `db:"group_id" json:"group_id,omitempty"`
 	CompanyID *int64    `db:"company_id" json:"company_id,omitempty"`
 	StartTime time.Time `db:"start_time" json:"start_time"`
 	EndTime   time.Time `db:"end_time" json:"end_time"`
@@ -168,7 +146,7 @@ type AvailabilityIntersection struct {
 
 type MediaArchive struct {
 	ID           int64           `db:"id" json:"id"`
-	GroupID      int64           `db:"group_id" json:"group_id"`
+	CompanyID    int64           `db:"company_id" json:"company_id"`
 	UploadedBy   int64           `db:"uploaded_by" json:"uploaded_by"`
 	EventID      *int64          `db:"event_id" json:"event_id,omitempty"`
 	FileName     string          `db:"file_name" json:"file_name"`
