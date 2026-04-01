@@ -8,69 +8,57 @@ import (
 )
 
 func (h *Handler) signUp(c *gin.Context) {
+	var input model.SignUpInput
+	if err := c.BindJSON(&input); err != nil {
+		newErrorResponse(c, http.StatusBadRequest, "invalid input body")
+		return
+	}
+
+	if err := h.services.Authorization.StartRegistration(input); err != nil {
+		mapRegistrationError(c, err)
+		return
+	}
+
+	c.JSON(http.StatusAccepted, gin.H{
+		"message":        "verification code sent",
+		"expires_in_sec": int(h.services.Authorization.PendingRegistrationTTL().Seconds()),
+	})
+}
+
+func (h *Handler) verifySignUp(c *gin.Context) {
+	var input model.SignUpVerifyInput
+	if err := c.BindJSON(&input); err != nil {
+		newErrorResponse(c, http.StatusBadRequest, "invalid input body")
+		return
+	}
+
+	token, err := h.services.Authorization.VerifyRegistration(input)
+	if err != nil {
+		mapRegistrationError(c, err)
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"token": token,
+	})
+}
+
+func (h *Handler) resendSignUpCode(c *gin.Context) {
 	var input struct {
-		Email    string `json:"email" binding:"required"`
-		Username string `json:"username" binding:"required"`
-		Password string `json:"password" binding:"required"`
+		Email string `json:"email" binding:"required,email"`
 	}
 	if err := c.BindJSON(&input); err != nil {
 		newErrorResponse(c, http.StatusBadRequest, "invalid input body")
 		return
 	}
-	/*err := validatePassword(input.PasswordHash)
-	if err != nil {
-		newErrorResponse(c, http.StatusBadRequest, "incorrect password")
-		return
-	}*/
 
-	exists, err := h.services.UserExists(input.Email)
-	if err != nil {
-		newErrorResponse(c, http.StatusBadRequest, "user verification failed")
+	if err := h.services.Authorization.ResendRegistrationCode(input.Email); err != nil {
+		mapRegistrationError(c, err)
 		return
 	}
 
-	if exists {
-		newErrorResponse(c, http.StatusBadRequest, "user already exists")
-		return
-	}
-	/*
-	storedCode, err := checkCode(c)
-	if err != nil {
-		newErrorResponse(c, http.StatusBadRequest, err.Error())
-		return
-	}
-	code := h.services.Authorization.GenerateCode()
-
-	if err := h.services.SendCodeToEmail(input.Email, code); err != nil {
-		log.Println("failed to send code:", err)
-		newErrorResponse(c, http.StatusBadRequest, "failed to send code")
-		return
-	}
-
-	mu.Lock()
-	verificationCodes[input.Email] = VerificationCode{
-		Code:      code,
-		ExpiresAt: time.Now().Add(10 * time.Minute),
-		UserData:  input,
-		Email:     input.Email,
-	}
-	mu.Unlock()
-	*/
-	_, err = h.services.Authorization.CreateUser(model.User{
-		Email:    input.Email,
-		Username: input.Username,
-		Password: input.Password,
-	})
-	if err != nil {
-		newErrorResponse(c, http.StatusInternalServerError, err.Error())
-		return
-	}
-	token, err := h.services.Authorization.GenerateToken(input.Email, input.Password)
-	if err != nil {
-		newErrorResponse(c, http.StatusInternalServerError, err.Error())
-		return
-	}
-	c.JSON(http.StatusOK, map[string]interface{}{
-		"token": token,
+	c.JSON(http.StatusOK, gin.H{
+		"message":        "verification code resent",
+		"expires_in_sec": int(h.services.Authorization.PendingRegistrationTTL().Seconds()),
 	})
 }

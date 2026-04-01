@@ -1,6 +1,8 @@
 package service
 
 import (
+	"time"
+
 	"github.com/Sovpalo/sovpalo-backend/pkg/model"
 	"github.com/Sovpalo/sovpalo-backend/pkg/repository"
 )
@@ -27,9 +29,20 @@ type Authorization interface {
 	CreateUser(user model.User) (int, error)
 	ParseToken(token string) (int, error)
 	UserExists(email string) (bool, error)
+	UsernameExists(username string) (bool, error)
 	SendCodeToEmail(to string, code string) error
 	GenerateCode() string
 	GenerateToken(email, password string) (string, error)
+	StartRegistration(input model.SignUpInput) error
+	VerifyRegistration(input model.SignUpVerifyInput) (string, error)
+	ResendRegistrationCode(email string) error
+	StartSignIn(input model.SignInInput) error
+	VerifySignIn(input model.SignUpVerifyInput) (string, error)
+	ResendSignInCode(email string) error
+	StartPasswordReset(email string) error
+	VerifyPasswordReset(input model.ResetPasswordVerifyInput) error
+	ResendPasswordResetCode(email string) error
+	PendingRegistrationTTL() time.Duration
 }
 
 type Company interface {

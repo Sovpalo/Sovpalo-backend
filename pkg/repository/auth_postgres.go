@@ -30,6 +30,19 @@ func (r *AuthPostgres) UserExists(email string) (bool, error) {
 	return count > 0, nil
 }
 
+func (r *AuthPostgres) UsernameExists(username string) (bool, error) {
+	query := "SELECT COUNT(*) FROM users WHERE username = $1"
+	var count int
+	err := r.pool.QueryRow(context.Background(), query, username).Scan(&count)
+	if err != nil {
+		if err == sql.ErrNoRows || err == pgx.ErrNoRows {
+			return false, nil
+		}
+		return false, err
+	}
+	return count > 0, nil
+}
+
 func (r *AuthPostgres) CreateUser(user model.User) (int, error) {
 	var id int
 	query := "INSERT INTO users (username, email, password) VALUES ($1, $2, $3) RETURNING id"
@@ -45,4 +58,17 @@ func (r *AuthPostgres) GetUser(email, password string) (model.User, error) {
 	query := "SELECT id FROM users WHERE email = $1 AND password = $2"
 	err := r.pool.QueryRow(context.Background(), query, email, password).Scan(&user.ID)
 	return user, err
+}
+
+func (r *AuthPostgres) GetUserByEmail(email string) (model.User, error) {
+	var user model.User
+	query := "SELECT id, email, username, password FROM users WHERE email = $1"
+	err := r.pool.QueryRow(context.Background(), query, email).Scan(&user.ID, &user.Email, &user.Username, &user.Password)
+	return user, err
+}
+
+func (r *AuthPostgres) UpdateUserPassword(email string, passwordHash string) error {
+	query := "UPDATE users SET password = $1, updated_at = NOW() WHERE email = $2"
+	_, err := r.pool.Exec(context.Background(), query, passwordHash, email)
+	return err
 }

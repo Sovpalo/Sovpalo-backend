@@ -4,30 +4,9 @@ import (
 	"errors"
 	"net/http"
 	"strings"
-	"sync"
-	"time"
 
-	"github.com/Sovpalo/sovpalo-backend/pkg/model"
+	"github.com/Sovpalo/sovpalo-backend/pkg/service"
 	"github.com/gin-gonic/gin"
-)
-
-type AuthEmail struct {
-	smtpHost    string
-	smtpPort    string
-	senderEmail string
-	senderPass  string
-}
-type VerificationCode struct {
-	Code       string
-	ExpiresAt  time.Time
-	UserData   model.User
-	Email      string
-	IsVerified bool
-}
-
-var (
-	verificationCodes = make(map[string]VerificationCode)
-	mu                sync.Mutex
 )
 
 const (
@@ -36,7 +15,6 @@ const (
 )
 
 func (h *Handler) userIdentity(c *gin.Context) {
-
 	header := c.GetHeader(authorizationHeader)
 
 	if header == "" {
@@ -50,7 +28,6 @@ func (h *Handler) userIdentity(c *gin.Context) {
 		return
 	}
 	userId, err := h.services.Authorization.ParseToken(headerParts[1])
-
 	if err != nil {
 		newErrorResponse(c, http.StatusUnauthorized, err.Error())
 		return
@@ -73,63 +50,21 @@ func getUserId(c *gin.Context) (int, error) {
 	return idInt, nil
 }
 
-func validatePassword(password string) error {
-	if len(password) < 8 {
-		return errors.New("password is too short")
+func mapRegistrationError(c *gin.Context, err error) {
+	switch {
+	case errors.Is(err, service.ErrInvalidPassword):
+		newErrorResponse(c, http.StatusBadRequest, err.Error())
+	case errors.Is(err, service.ErrInvalidCredentials):
+		newErrorResponse(c, http.StatusUnauthorized, err.Error())
+	case errors.Is(err, service.ErrUserAlreadyExists), errors.Is(err, service.ErrUsernameAlreadyExists):
+		newErrorResponse(c, http.StatusBadRequest, err.Error())
+	case errors.Is(err, service.ErrUserNotFound):
+		newErrorResponse(c, http.StatusBadRequest, err.Error())
+	case errors.Is(err, service.ErrPendingRegistrationNotFound), errors.Is(err, service.ErrVerificationCodeExpired):
+		newErrorResponse(c, http.StatusBadRequest, err.Error())
+	case errors.Is(err, service.ErrIncorrectVerificationCode):
+		newErrorResponse(c, http.StatusUnauthorized, err.Error())
+	default:
+		newErrorResponse(c, http.StatusInternalServerError, err.Error())
 	}
-
-	hasLower := false
-	hasUpper := false
-	hasDigit := false
-
-	for _, ch := range password {
-		switch {
-		case ch >= 'a' && ch <= 'z':
-			hasLower = true
-		case ch >= 'A' && ch <= 'Z':
-			hasUpper = true
-		case ch >= '0' && ch <= '9':
-			hasDigit = true
-		}
-	}
-
-	if !(hasLower && hasUpper && hasDigit) {
-		return errors.New("invalid password")
-	}
-
-	return nil
-}
-func checkCode(c *gin.Context) (VerificationCode, error) {
-	var input struct {
-		Email string `json:"email"`
-		Code  string `json:"code"`
-	}
-
-	if err := c.BindJSON(&input); err != nil {
-
-		return VerificationCode{}, errors.New("incorrect input")
-	}
-
-	mu.Lock()
-	storedCode, exists := verificationCodes[input.Email]
-	mu.Unlock()
-
-	if !exists {
-		return VerificationCode{}, errors.New("code not found")
-	}
-	if storedCode.ExpiresAt.Before(time.Now()) {
-		return VerificationCode{}, errors.New("code expired")
-	}
-
-	if storedCode.Code != input.Code {
-		return VerificationCode{}, errors.New("incorrect code")
-	}
-
-	storedCode.IsVerified = true
-
-	mu.Lock()
-	verificationCodes[input.Email] = storedCode
-	mu.Unlock()
-
-	return storedCode, nil
 }

@@ -64,6 +64,15 @@ services:
       REDIS_DB: ${REDIS_DB:-0}
       JWT_SECRET: ${JWT_SECRET:-change_me}
       PASSWORD_SALT: ${PASSWORD_SALT:-change_me}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USERNAME: ${SMTP_USERNAME:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_FROM: ${SMTP_FROM:-}
+      SMTP_SSL: ${SMTP_SSL:-false}
+      SMTP_FORCE_IPV4: ${SMTP_FORCE_IPV4:-true}
+      SMTP_TIMEOUT_SEC: ${SMTP_TIMEOUT_SEC:-20}
+      SMTP_SKIP_TLS_VERIFY: ${SMTP_SKIP_TLS_VERIFY:-false}
     ports:
       - "8000:8000"
     restart: unless-stopped

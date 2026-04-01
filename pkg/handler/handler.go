@@ -25,12 +25,27 @@ func (h *Handler) InitRoutes() *gin.Engine {
 
 	// проверка статуса сервиса, возвращает статус и ошибку, если сервис не работает
 	router.GET("/health", h.healthHandler)
+	router.GET("/health/smtp", h.smtpHealthHandler)
 	auth := router.Group("/auth")
 	{
-		// регистрация и возвращение токена
+		// старт регистрации и отправка кода на email
 		auth.POST("/sign-up", h.signUp)
-		// аутентификация и возвращение токена
+		// подтверждение email-кода и завершение регистрации
+		auth.POST("/sign-up/verify", h.verifySignUp)
+		// повторная отправка кода подтверждения
+		auth.POST("/sign-up/resend", h.resendSignUpCode)
+		// старт входа: проверка пароля и отправка кода на email
 		auth.POST("/sign-in", h.signIn)
+		// подтверждение кода для входа и выдача токена
+		auth.POST("/sign-in/verify", h.verifySignIn)
+		// повторная отправка кода для входа
+		auth.POST("/sign-in/resend", h.resendSignInCode)
+		// запуск восстановления пароля
+		auth.POST("/password/forgot", h.forgotPassword)
+		// подтверждение кода и установка нового пароля
+		auth.POST("/password/verify", h.verifyForgotPassword)
+		// повторная отправка кода для восстановления пароля
+		auth.POST("/password/resend", h.resendForgotPasswordCode)
 	}
 
 	companies := router.Group("/companies", h.userIdentity)
@@ -129,6 +144,21 @@ func (h *Handler) InitRoutes() *gin.Engine {
 
 func (h *Handler) healthHandler(c *gin.Context) {
 	status, err := h.health.Status(c.Request.Context())
+	if err != nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{
+			"status": status,
+			"error":  err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"status": status,
+	})
+}
+
+func (h *Handler) smtpHealthHandler(c *gin.Context) {
+	status, err := h.health.SMTPStatus(c.Request.Context())
 	if err != nil {
 		c.JSON(http.StatusServiceUnavailable, gin.H{
 			"status": status,

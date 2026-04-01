@@ -3,27 +3,114 @@ package handler
 import (
 	"net/http"
 
-	//"github.com/Sovpalo/sovpalo-backend/pkg/model"
+	"github.com/Sovpalo/sovpalo-backend/pkg/model"
 	"github.com/gin-gonic/gin"
 )
-type signInInput struct {
-	Email    string `json:"email" binding:"required"`
-	Password string `json:"password" binding:"required"`
-}
 
 func (h *Handler) signIn(c *gin.Context) {
-	var input signInInput
+	var input model.SignInInput
 
 	if err := c.BindJSON(&input); err != nil {
-		newErrorResponse(c, http.StatusBadRequest, err.Error())
+		newErrorResponse(c, http.StatusBadRequest, "invalid input body")
 		return
 	}
-	token, err := h.services.Authorization.GenerateToken(input.Email, input.Password)
+
+	if err := h.services.Authorization.StartSignIn(input); err != nil {
+		mapRegistrationError(c, err)
+		return
+	}
+
+	c.JSON(http.StatusAccepted, gin.H{
+		"message":        "verification code sent",
+		"expires_in_sec": int(h.services.Authorization.PendingRegistrationTTL().Seconds()),
+	})
+}
+
+func (h *Handler) verifySignIn(c *gin.Context) {
+	var input model.SignUpVerifyInput
+	if err := c.BindJSON(&input); err != nil {
+		newErrorResponse(c, http.StatusBadRequest, "invalid input body")
+		return
+	}
+
+	token, err := h.services.Authorization.VerifySignIn(input)
 	if err != nil {
-		newErrorResponse(c, http.StatusInternalServerError, err.Error())
+		mapRegistrationError(c, err)
 		return
 	}
-	c.JSON(http.StatusOK, map[string]interface{}{
+
+	c.JSON(http.StatusOK, gin.H{
 		"token": token,
+	})
+}
+
+func (h *Handler) resendSignInCode(c *gin.Context) {
+	var input model.ForgotPasswordInput
+	if err := c.BindJSON(&input); err != nil {
+		newErrorResponse(c, http.StatusBadRequest, "invalid input body")
+		return
+	}
+
+	if err := h.services.Authorization.ResendSignInCode(input.Email); err != nil {
+		mapRegistrationError(c, err)
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message":        "verification code resent",
+		"expires_in_sec": int(h.services.Authorization.PendingRegistrationTTL().Seconds()),
+	})
+}
+
+func (h *Handler) forgotPassword(c *gin.Context) {
+	var input model.ForgotPasswordInput
+	if err := c.BindJSON(&input); err != nil {
+		newErrorResponse(c, http.StatusBadRequest, "invalid input body")
+		return
+	}
+
+	if err := h.services.Authorization.StartPasswordReset(input.Email); err != nil {
+		mapRegistrationError(c, err)
+		return
+	}
+
+	c.JSON(http.StatusAccepted, gin.H{
+		"message":        "verification code sent",
+		"expires_in_sec": int(h.services.Authorization.PendingRegistrationTTL().Seconds()),
+	})
+}
+
+func (h *Handler) verifyForgotPassword(c *gin.Context) {
+	var input model.ResetPasswordVerifyInput
+	if err := c.BindJSON(&input); err != nil {
+		newErrorResponse(c, http.StatusBadRequest, "invalid input body")
+		return
+	}
+
+	if err := h.services.Authorization.VerifyPasswordReset(input); err != nil {
+		mapRegistrationError(c, err)
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "password updated",
+	})
+}
+
+func (h *Handler) resendForgotPasswordCode(c *gin.Context) {
+	var input model.ForgotPasswordInput
+	if err := c.BindJSON(&input); err != nil {
+		newErrorResponse(c, http.StatusBadRequest, "invalid input body")
+		return
+	}
+
+	if err := h.services.Authorization.ResendPasswordResetCode(input.Email); err != nil {
+		mapRegistrationError(c, err)
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message":        "verification code resent",
+		"expires_in_sec": int(h.services.Authorization.PendingRegistrationTTL().Seconds()),
 	})
 }

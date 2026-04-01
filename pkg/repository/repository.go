@@ -28,8 +28,14 @@ func NewRepository(pool *pgxpool.Pool, cache *redis.Client) *Repository {
 
 type Authorization interface {
 	UserExists(email string) (bool, error)
+	UsernameExists(username string) (bool, error)
 	CreateUser(user model.User) (int, error)
 	GetUser(email, password string) (model.User, error)
+	GetUserByEmail(email string) (model.User, error)
+	UpdateUserPassword(email string, passwordHash string) error
+	SavePendingAuthChallenge(challenge model.PendingAuthChallenge, ttl time.Duration) error
+	GetPendingAuthChallenge(challengeType model.AuthChallengeType, email string) (model.PendingAuthChallenge, error)
+	DeletePendingAuthChallenge(challengeType model.AuthChallengeType, email string) error
 }
 
 type Company interface {
