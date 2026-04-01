@@ -32,6 +32,7 @@ type Authorization interface {
 	CreateUser(user model.User) (int, error)
 	GetUser(email, password string) (model.User, error)
 	GetUserByEmail(email string) (model.User, error)
+	GetUserByID(userID int64) (model.User, error)
 	UpdateUserPassword(email string, passwordHash string) error
 	SavePendingAuthChallenge(challenge model.PendingAuthChallenge, ttl time.Duration) error
 	GetPendingAuthChallenge(challengeType model.AuthChallengeType, email string) (model.PendingAuthChallenge, error)

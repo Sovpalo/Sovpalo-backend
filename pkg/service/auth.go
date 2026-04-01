@@ -77,6 +77,21 @@ func (s *AuthService) UsernameExists(username string) (bool, error) {
 	return s.repo.UsernameExists(username)
 }
 
+func (s *AuthService) GetProfile(userID int64) (model.UserProfile, error) {
+	user, err := s.repo.GetUserByID(userID)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return model.UserProfile{}, ErrUserNotFound
+		}
+		return model.UserProfile{}, err
+	}
+
+	return model.UserProfile{
+		Email:    user.Email,
+		Username: user.Username,
+	}, nil
+}
+
 func (s *AuthService) SendCodeToEmail(to string, code string) error {
 	body := fmt.Sprintf("Your verification code is %s. It expires in %d minutes.", code, int(s.pendingTTL.Minutes()))
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)

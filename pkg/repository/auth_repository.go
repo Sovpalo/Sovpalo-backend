@@ -130,6 +130,10 @@ func (r *AuthRepository) GetUserByEmail(email string) (model.User, error) {
 	return r.postgres.GetUserByEmail(email)
 }
 
+func (r *AuthRepository) GetUserByID(userID int64) (model.User, error) {
+	return r.postgres.GetUserByID(userID)
+}
+
 func (r *AuthRepository) UpdateUserPassword(email string, passwordHash string) error {
 	user, err := r.postgres.GetUserByEmail(email)
 	if err != nil {

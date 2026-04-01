@@ -28,6 +28,11 @@ type ResetPasswordVerifyInput struct {
 	NewPassword string `json:"new_password" binding:"required"`
 }
 
+type UserProfile struct {
+	Email    string `json:"email"`
+	Username string `json:"username"`
+}
+
 type AuthChallengeType string
 
 const (

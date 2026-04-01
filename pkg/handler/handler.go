@@ -46,6 +46,8 @@ func (h *Handler) InitRoutes() *gin.Engine {
 		auth.POST("/password/verify", h.verifyForgotPassword)
 		// повторная отправка кода для восстановления пароля
 		auth.POST("/password/resend", h.resendForgotPasswordCode)
+		// информация о текущем пользователе
+		auth.GET("/me", h.userIdentity, h.getCurrentUser)
 	}
 
 	companies := router.Group("/companies", h.userIdentity)

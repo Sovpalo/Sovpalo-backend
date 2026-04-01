@@ -67,6 +67,13 @@ func (r *AuthPostgres) GetUserByEmail(email string) (model.User, error) {
 	return user, err
 }
 
+func (r *AuthPostgres) GetUserByID(userID int64) (model.User, error) {
+	var user model.User
+	query := "SELECT id, email, username FROM users WHERE id = $1"
+	err := r.pool.QueryRow(context.Background(), query, userID).Scan(&user.ID, &user.Email, &user.Username)
+	return user, err
+}
+
 func (r *AuthPostgres) UpdateUserPassword(email string, passwordHash string) error {
 	query := "UPDATE users SET password = $1, updated_at = NOW() WHERE email = $2"
 	_, err := r.pool.Exec(context.Background(), query, passwordHash, email)

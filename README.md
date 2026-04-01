@@ -51,6 +51,7 @@ go run ./cmd/migrate status
 - `POST /auth/password/forgot` — запуск восстановления пароля по `email`, отправляет 4-значный код на email.
 - `POST /auth/password/verify` — подтверждение кода и установка нового пароля. Принимает `email`, `code`, `new_password`.
 - `POST /auth/password/resend` — повторная отправка кода для восстановления пароля.
+- `GET /auth/me` — получение информации о текущем пользователе. Требует `Authorization: Bearer <jwt>`, возвращает `email` и `username`.
 
 ### Пример регистрации
 

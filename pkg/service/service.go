@@ -30,6 +30,7 @@ type Authorization interface {
 	ParseToken(token string) (int, error)
 	UserExists(email string) (bool, error)
 	UsernameExists(username string) (bool, error)
+	GetProfile(userID int64) (model.UserProfile, error)
 	SendCodeToEmail(to string, code string) error
 	GenerateCode() string
 	GenerateToken(email, password string) (string, error)
