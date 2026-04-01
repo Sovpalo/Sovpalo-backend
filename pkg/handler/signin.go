@@ -15,25 +15,7 @@ func (h *Handler) signIn(c *gin.Context) {
 		return
 	}
 
-	if err := h.services.Authorization.StartSignIn(input); err != nil {
-		mapRegistrationError(c, err)
-		return
-	}
-
-	c.JSON(http.StatusAccepted, gin.H{
-		"message":        "verification code sent",
-		"expires_in_sec": int(h.services.Authorization.PendingRegistrationTTL().Seconds()),
-	})
-}
-
-func (h *Handler) verifySignIn(c *gin.Context) {
-	var input model.SignUpVerifyInput
-	if err := c.BindJSON(&input); err != nil {
-		newErrorResponse(c, http.StatusBadRequest, "invalid input body")
-		return
-	}
-
-	token, err := h.services.Authorization.VerifySignIn(input)
+	token, err := h.services.Authorization.SignIn(input)
 	if err != nil {
 		mapRegistrationError(c, err)
 		return
@@ -41,24 +23,6 @@ func (h *Handler) verifySignIn(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{
 		"token": token,
-	})
-}
-
-func (h *Handler) resendSignInCode(c *gin.Context) {
-	var input model.ForgotPasswordInput
-	if err := c.BindJSON(&input); err != nil {
-		newErrorResponse(c, http.StatusBadRequest, "invalid input body")
-		return
-	}
-
-	if err := h.services.Authorization.ResendSignInCode(input.Email); err != nil {
-		mapRegistrationError(c, err)
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{
-		"message":        "verification code resent",
-		"expires_in_sec": int(h.services.Authorization.PendingRegistrationTTL().Seconds()),
 	})
 }
 

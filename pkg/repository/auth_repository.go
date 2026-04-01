@@ -134,6 +134,45 @@ func (r *AuthRepository) GetUserByID(userID int64) (model.User, error) {
 	return r.postgres.GetUserByID(userID)
 }
 
+func (r *AuthRepository) DeleteUser(userID int64) error {
+	user, err := r.postgres.GetUserByID(userID)
+	if err != nil {
+		return err
+	}
+
+	if err := r.postgres.DeleteUser(userID); err != nil {
+		return err
+	}
+
+	if r.cache == nil {
+		return nil
+	}
+
+	ctx := context.Background()
+	_ = r.cache.Del(ctx,
+		userExistsPrefix+strings.ToLower(user.Email),
+		usernameExistsPrefix+strings.ToLower(user.Username),
+	).Err()
+
+	loginPattern := fmt.Sprintf("%s%s:*", userLoginPrefix, strings.ToLower(user.Email))
+	loginIter := r.cache.Scan(ctx, 0, loginPattern, 100).Iterator()
+	for loginIter.Next(ctx) {
+		_ = r.cache.Del(ctx, loginIter.Val()).Err()
+	}
+	if loginIter.Err() != nil {
+		return loginIter.Err()
+	}
+
+	for _, challengeType := range []model.AuthChallengeType{
+		model.AuthChallengeTypeSignUp,
+		model.AuthChallengeTypePasswordReset,
+	} {
+		_ = r.cache.Del(ctx, authChallengeKey(challengeType, user.Email)).Err()
+	}
+
+	return nil
+}
+
 func (r *AuthRepository) UpdateUserPassword(email string, passwordHash string) error {
 	user, err := r.postgres.GetUserByEmail(email)
 	if err != nil {

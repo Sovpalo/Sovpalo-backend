@@ -36,10 +36,6 @@ func (h *Handler) InitRoutes() *gin.Engine {
 		auth.POST("/sign-up/resend", h.resendSignUpCode)
 		// старт входа: проверка пароля и отправка кода на email
 		auth.POST("/sign-in", h.signIn)
-		// подтверждение кода для входа и выдача токена
-		auth.POST("/sign-in/verify", h.verifySignIn)
-		// повторная отправка кода для входа
-		auth.POST("/sign-in/resend", h.resendSignInCode)
 		// запуск восстановления пароля
 		auth.POST("/password/forgot", h.forgotPassword)
 		// подтверждение кода и установка нового пароля
@@ -48,6 +44,8 @@ func (h *Handler) InitRoutes() *gin.Engine {
 		auth.POST("/password/resend", h.resendForgotPasswordCode)
 		// информация о текущем пользователе
 		auth.GET("/me", h.userIdentity, h.getCurrentUser)
+		// удаление текущего пользователя
+		auth.DELETE("/me", h.userIdentity, h.deleteCurrentUser)
 	}
 
 	companies := router.Group("/companies", h.userIdentity)

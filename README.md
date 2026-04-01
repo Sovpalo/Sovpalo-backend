@@ -45,13 +45,12 @@ go run ./cmd/migrate status
 - `POST /auth/sign-up` — начало регистрации. Принимает `username`, `email`, `password`, отправляет 4-значный код на email.
 - `POST /auth/sign-up/verify` — подтверждение кода. Принимает `email`, `code`, создаёт пользователя и возвращает JWT.
 - `POST /auth/sign-up/resend` — повторная отправка нового 4-значного кода на email.
-- `POST /auth/sign-in` — начало безопасного входа. Проверяет `email` и `password`, затем отправляет 4-значный код на email.
-- `POST /auth/sign-in/verify` — подтверждение кода для входа, возвращает JWT.
-- `POST /auth/sign-in/resend` — повторная отправка кода для входа.
+- `POST /auth/sign-in` — вход по `email` и `password`, сразу возвращает JWT.
 - `POST /auth/password/forgot` — запуск восстановления пароля по `email`, отправляет 4-значный код на email.
 - `POST /auth/password/verify` — подтверждение кода и установка нового пароля. Принимает `email`, `code`, `new_password`.
 - `POST /auth/password/resend` — повторная отправка кода для восстановления пароля.
 - `GET /auth/me` — получение информации о текущем пользователе. Требует `Authorization: Bearer <jwt>`, возвращает `email` и `username`.
+- `DELETE /auth/me` — удаление текущего аккаунта. Требует `Authorization: Bearer <jwt>`. Если пользователь владеет компаниями, они тоже будут удалены вместе со связанными данными.
 
 ### Пример регистрации
 
@@ -65,7 +64,7 @@ curl -X POST http://localhost:8000/auth/sign-up \
   }'
 ```
 
-### Пример безопасного входа
+### Пример входа
 
 ```bash
 curl -X POST http://localhost:8000/auth/sign-in \

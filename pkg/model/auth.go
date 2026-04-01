@@ -37,7 +37,6 @@ type AuthChallengeType string
 
 const (
 	AuthChallengeTypeSignUp        AuthChallengeType = "sign_up"
-	AuthChallengeTypeSignIn        AuthChallengeType = "sign_in"
 	AuthChallengeTypePasswordReset AuthChallengeType = "password_reset"
 )
 

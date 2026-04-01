@@ -28,3 +28,25 @@ func (h *Handler) getCurrentUser(c *gin.Context) {
 
 	c.JSON(http.StatusOK, profile)
 }
+
+func (h *Handler) deleteCurrentUser(c *gin.Context) {
+	userID, err := getUserId(c)
+	if err != nil {
+		newErrorResponse(c, http.StatusUnauthorized, err.Error())
+		return
+	}
+
+	if err := h.services.Authorization.DeleteUser(int64(userID)); err != nil {
+		if errors.Is(err, service.ErrUserNotFound) {
+			newErrorResponse(c, http.StatusNotFound, err.Error())
+			return
+		}
+
+		newErrorResponse(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "user deleted",
+	})
+}

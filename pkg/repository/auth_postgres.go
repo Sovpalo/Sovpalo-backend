@@ -74,6 +74,29 @@ func (r *AuthPostgres) GetUserByID(userID int64) (model.User, error) {
 	return user, err
 }
 
+func (r *AuthPostgres) DeleteUser(userID int64) error {
+	ctx := context.Background()
+	tx, err := r.pool.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+
+	if _, err := tx.Exec(ctx, "DELETE FROM companies WHERE created_by = $1", userID); err != nil {
+		return err
+	}
+
+	tag, err := tx.Exec(ctx, "DELETE FROM users WHERE id = $1", userID)
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() == 0 {
+		return pgx.ErrNoRows
+	}
+
+	return tx.Commit(ctx)
+}
+
 func (r *AuthPostgres) UpdateUserPassword(email string, passwordHash string) error {
 	query := "UPDATE users SET password = $1, updated_at = NOW() WHERE email = $2"
 	_, err := r.pool.Exec(context.Background(), query, passwordHash, email)

@@ -92,6 +92,17 @@ func (s *AuthService) GetProfile(userID int64) (model.UserProfile, error) {
 	}, nil
 }
 
+func (s *AuthService) DeleteUser(userID int64) error {
+	if err := s.repo.DeleteUser(userID); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return ErrUserNotFound
+		}
+		return err
+	}
+
+	return nil
+}
+
 func (s *AuthService) SendCodeToEmail(to string, code string) error {
 	body := fmt.Sprintf("Your verification code is %s. It expires in %d minutes.", code, int(s.pendingTTL.Minutes()))
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -121,6 +132,22 @@ func (s *AuthService) GenerateToken(email, password string) (string, error) {
 		return "", err
 	}
 	return s.generateTokenForUser(email, passwordHash)
+}
+
+func (s *AuthService) SignIn(input model.SignInInput) (string, error) {
+	passwordHash, err := s.generatePasswordHash(input.Password)
+	if err != nil {
+		return "", err
+	}
+
+	if _, err := s.repo.GetUser(input.Email, passwordHash); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return "", ErrInvalidCredentials
+		}
+		return "", err
+	}
+
+	return s.generateTokenForUser(input.Email, passwordHash)
 }
 
 func (s *AuthService) generatePasswordHash(password string) (string, error) {
@@ -191,43 +218,6 @@ func (s *AuthService) VerifyRegistration(input model.SignUpVerifyInput) (string,
 
 func (s *AuthService) ResendRegistrationCode(email string) error {
 	return s.resendChallenge(model.AuthChallengeTypeSignUp, email)
-}
-
-func (s *AuthService) StartSignIn(input model.SignInInput) error {
-	passwordHash, err := s.generatePasswordHash(input.Password)
-	if err != nil {
-		return err
-	}
-
-	if _, err := s.repo.GetUser(input.Email, passwordHash); err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return ErrInvalidCredentials
-		}
-		return err
-	}
-
-	return s.startChallenge(model.PendingAuthChallenge{
-		Type:         model.AuthChallengeTypeSignIn,
-		Email:        input.Email,
-		PasswordHash: passwordHash,
-	})
-}
-
-func (s *AuthService) VerifySignIn(input model.SignUpVerifyInput) (string, error) {
-	challenge, err := s.verifyChallenge(model.AuthChallengeTypeSignIn, input.Email, input.Code)
-	if err != nil {
-		return "", err
-	}
-
-	if err := s.repo.DeletePendingAuthChallenge(model.AuthChallengeTypeSignIn, input.Email); err != nil {
-		return "", err
-	}
-
-	return s.generateTokenForUser(challenge.Email, challenge.PasswordHash)
-}
-
-func (s *AuthService) ResendSignInCode(email string) error {
-	return s.resendChallenge(model.AuthChallengeTypeSignIn, email)
 }
 
 func (s *AuthService) StartPasswordReset(email string) error {

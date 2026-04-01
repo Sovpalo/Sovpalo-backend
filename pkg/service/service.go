@@ -31,15 +31,14 @@ type Authorization interface {
 	UserExists(email string) (bool, error)
 	UsernameExists(username string) (bool, error)
 	GetProfile(userID int64) (model.UserProfile, error)
+	DeleteUser(userID int64) error
 	SendCodeToEmail(to string, code string) error
 	GenerateCode() string
 	GenerateToken(email, password string) (string, error)
+	SignIn(input model.SignInInput) (string, error)
 	StartRegistration(input model.SignUpInput) error
 	VerifyRegistration(input model.SignUpVerifyInput) (string, error)
 	ResendRegistrationCode(email string) error
-	StartSignIn(input model.SignInInput) error
-	VerifySignIn(input model.SignUpVerifyInput) (string, error)
-	ResendSignInCode(email string) error
 	StartPasswordReset(email string) error
 	VerifyPasswordReset(input model.ResetPasswordVerifyInput) error
 	ResendPasswordResetCode(email string) error
