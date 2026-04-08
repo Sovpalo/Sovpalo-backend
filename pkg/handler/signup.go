@@ -10,7 +10,7 @@ import (
 func (h *Handler) signUp(c *gin.Context) {
 	var input model.SignUpInput
 	if err := c.BindJSON(&input); err != nil {
-		newErrorResponse(c, http.StatusBadRequest, "invalid input body")
+		newErrorResponse(c, http.StatusBadRequest, bindingErrorMessage(err))
 		return
 	}
 
@@ -28,7 +28,7 @@ func (h *Handler) signUp(c *gin.Context) {
 func (h *Handler) verifySignUp(c *gin.Context) {
 	var input model.SignUpVerifyInput
 	if err := c.BindJSON(&input); err != nil {
-		newErrorResponse(c, http.StatusBadRequest, "invalid input body")
+		newErrorResponse(c, http.StatusBadRequest, bindingErrorMessage(err))
 		return
 	}
 
@@ -48,7 +48,7 @@ func (h *Handler) resendSignUpCode(c *gin.Context) {
 		Email string `json:"email" binding:"required,email"`
 	}
 	if err := c.BindJSON(&input); err != nil {
-		newErrorResponse(c, http.StatusBadRequest, "invalid input body")
+		newErrorResponse(c, http.StatusBadRequest, bindingErrorMessage(err))
 		return
 	}
 

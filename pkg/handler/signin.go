@@ -11,7 +11,7 @@ func (h *Handler) signIn(c *gin.Context) {
 	var input model.SignInInput
 
 	if err := c.BindJSON(&input); err != nil {
-		newErrorResponse(c, http.StatusBadRequest, "invalid input body")
+		newErrorResponse(c, http.StatusBadRequest, bindingErrorMessage(err))
 		return
 	}
 
@@ -29,7 +29,7 @@ func (h *Handler) signIn(c *gin.Context) {
 func (h *Handler) forgotPassword(c *gin.Context) {
 	var input model.ForgotPasswordInput
 	if err := c.BindJSON(&input); err != nil {
-		newErrorResponse(c, http.StatusBadRequest, "invalid input body")
+		newErrorResponse(c, http.StatusBadRequest, bindingErrorMessage(err))
 		return
 	}
 
@@ -47,7 +47,7 @@ func (h *Handler) forgotPassword(c *gin.Context) {
 func (h *Handler) verifyForgotPassword(c *gin.Context) {
 	var input model.ResetPasswordVerifyInput
 	if err := c.BindJSON(&input); err != nil {
-		newErrorResponse(c, http.StatusBadRequest, "invalid input body")
+		newErrorResponse(c, http.StatusBadRequest, bindingErrorMessage(err))
 		return
 	}
 
@@ -64,7 +64,7 @@ func (h *Handler) verifyForgotPassword(c *gin.Context) {
 func (h *Handler) resendForgotPasswordCode(c *gin.Context) {
 	var input model.ForgotPasswordInput
 	if err := c.BindJSON(&input); err != nil {
-		newErrorResponse(c, http.StatusBadRequest, "invalid input body")
+		newErrorResponse(c, http.StatusBadRequest, bindingErrorMessage(err))
 		return
 	}
 

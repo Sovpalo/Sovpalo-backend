@@ -147,7 +147,7 @@ func (h *Handler) healthHandler(c *gin.Context) {
 	if err != nil {
 		c.JSON(http.StatusServiceUnavailable, gin.H{
 			"status": status,
-			"error":  err.Error(),
+			"error":  normalizeErrorMessage(http.StatusServiceUnavailable, err.Error()),
 		})
 		return
 	}
@@ -162,7 +162,7 @@ func (h *Handler) smtpHealthHandler(c *gin.Context) {
 	if err != nil {
 		c.JSON(http.StatusServiceUnavailable, gin.H{
 			"status": status,
-			"error":  err.Error(),
+			"error":  normalizeErrorMessage(http.StatusServiceUnavailable, err.Error()),
 		})
 		return
 	}
