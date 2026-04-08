@@ -37,10 +37,23 @@ func (r *AvailabilityPostgres) CreateAvailability(companyID int64, userID int64,
 
 func (r *AvailabilityPostgres) ListAvailability(companyID int64, userID int64) ([]model.UserAvailability, error) {
 	ctx := context.Background()
+
+	var isMember bool
+	if err := r.pool.QueryRow(ctx,
+		"SELECT EXISTS (SELECT 1 FROM company_members WHERE company_id = $1 AND user_id = $2)",
+		companyID, userID,
+	).Scan(&isMember); err != nil {
+		return nil, err
+	}
+	if !isMember {
+		return nil, errors.New("user is not a member of the company")
+	}
+
 	query := `
-		SELECT id, user_id, company_id, start_time, end_time, note, created_at, updated_at
-		FROM user_availability
-		WHERE company_id = $1 AND user_id = $2
+		SELECT ua.id, ua.user_id, ua.company_id, ua.start_time, ua.end_time, ua.note, ua.created_at, ua.updated_at
+		FROM user_availability ua
+		JOIN company_members cm ON cm.company_id = ua.company_id AND cm.user_id = ua.user_id
+		WHERE ua.company_id = $1 AND ua.user_id = $2
 		ORDER BY start_time
 	`
 	rows, err := r.pool.Query(ctx, query, companyID, userID)
@@ -84,10 +97,11 @@ func (r *AvailabilityPostgres) ListCompanyAvailability(companyID int64, userID i
 	}
 
 	query := `
-		SELECT id, user_id, company_id, start_time, end_time, note, created_at, updated_at
-		FROM user_availability
-		WHERE company_id = $1
-		ORDER BY user_id, start_time
+		SELECT ua.id, ua.user_id, ua.company_id, ua.start_time, ua.end_time, ua.note, ua.created_at, ua.updated_at
+		FROM user_availability ua
+		JOIN company_members cm ON cm.company_id = ua.company_id AND cm.user_id = ua.user_id
+		WHERE ua.company_id = $1
+		ORDER BY ua.user_id, ua.start_time
 	`
 	rows, err := r.pool.Query(ctx, query, companyID)
 	if err != nil {
