@@ -54,7 +54,7 @@ func (r *AvailabilityPostgres) ListAvailability(companyID int64, userID int64) (
 		FROM user_availability ua
 		JOIN company_members cm ON cm.company_id = ua.company_id AND cm.user_id = ua.user_id
 		WHERE ua.company_id = $1 AND ua.user_id = $2
-		ORDER BY start_time
+		ORDER BY ua.start_time
 	`
 	rows, err := r.pool.Query(ctx, query, companyID, userID)
 	if err != nil {
@@ -185,12 +185,13 @@ func (r *AvailabilityPostgres) ListCompanyMemberIDs(companyID int64) ([]int64, e
 func (r *AvailabilityPostgres) ListAvailabilityInRange(companyID int64, start time.Time, end time.Time) ([]model.UserAvailability, error) {
 	ctx := context.Background()
 	query := `
-		SELECT id, user_id, company_id, start_time, end_time, note, created_at, updated_at
-		FROM user_availability
-		WHERE company_id = $1
-		  AND start_time < $3
-		  AND end_time > $2
-		ORDER BY user_id, start_time
+		SELECT ua.id, ua.user_id, ua.company_id, ua.start_time, ua.end_time, ua.note, ua.created_at, ua.updated_at
+		FROM user_availability ua
+		JOIN company_members cm ON cm.company_id = ua.company_id AND cm.user_id = ua.user_id
+		WHERE ua.company_id = $1
+		  AND ua.start_time < $3
+		  AND ua.end_time > $2
+		ORDER BY ua.user_id, ua.start_time
 	`
 	rows, err := r.pool.Query(ctx, query, companyID, start, end)
 	if err != nil {

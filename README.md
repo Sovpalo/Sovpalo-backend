@@ -4,6 +4,14 @@
 
 ## Быстрый старт
 
+1) Создать `.env` на основе примера и при необходимости скорректировать значения:
+
+```bash
+cp .env.example .env
+```
+
+Если вы уже поднимали PostgreSQL через Docker с другими учетными данными, сохраненный `db-data` volume продолжит использовать старый пароль. В таком случае либо выставьте в `.env` те же `DB_USER`/`DB_PASSWORD`, что использовались при первом запуске, либо пересоздайте volume.
+
 1) Поднять сервисы (DB, Redis, миграции, API):
 
 ```bash
@@ -26,6 +34,17 @@ SMTP_TIMEOUT_SEC=20
 SMTP_SKIP_TLS_VERIFY=false
 JWT_SECRET=change_me
 PASSWORD_SALT=change_me
+```
+
+Для локальной базы должны совпадать переменные приложения и контейнера PostgreSQL:
+
+```bash
+DB_USER=postgres
+DB_PASSWORD=postgres
+DB_NAME=sovpalo
+DB_HOST=localhost
+DB_PORT=5433
+DB_SSLMODE=disable
 ```
 
 ## Миграции
