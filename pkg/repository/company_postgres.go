@@ -213,6 +213,10 @@ func (r *CompanyPostgres) LeaveCompany(companyID int64, userID int64, newOwnerID
 		return pgx.ErrNoRows
 	}
 
+	if _, err := tx.Exec(ctx, "DELETE FROM user_availability WHERE company_id = $1 AND user_id = $2", companyID, userID); err != nil {
+		return err
+	}
+
 	if err := tx.Commit(ctx); err != nil {
 		return err
 	}
@@ -274,6 +278,11 @@ func (r *CompanyPostgres) CreateInvitation(companyID int64, invitedBy int64, use
 	inviteQuery := `
 		INSERT INTO company_invitations (company_id, invited_user_id, invited_by, status)
 		VALUES ($1, $2, $3, 'pending')
+		ON CONFLICT (company_id, invited_user_id) DO UPDATE
+		SET invited_by = EXCLUDED.invited_by,
+		    status = 'pending',
+		    created_at = NOW(),
+		    responded_at = NULL
 		RETURNING id, company_id, invited_user_id, invited_by, status, created_at
 	`
 	if err := tx.QueryRow(ctx, inviteQuery, companyID, invitedUserID, invitedBy).Scan(
