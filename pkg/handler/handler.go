@@ -2,6 +2,8 @@ package handler
 
 import (
 	"net/http"
+	"os"
+	"path/filepath"
 
 	"github.com/Sovpalo/sovpalo-backend/pkg/service"
 	"github.com/gin-gonic/gin"
@@ -22,6 +24,7 @@ func NewHandler(health service.HealthService, services *service.Service) *Handle
 func (h *Handler) InitRoutes() *gin.Engine {
 	router := gin.New()
 	router.Use(gin.Recovery())
+	router.Static("/uploads", avatarUploadsRootDir())
 
 	// проверка статуса сервиса, возвращает статус и ошибку, если сервис не работает
 	router.GET("/health", h.healthHandler)
@@ -44,6 +47,10 @@ func (h *Handler) InitRoutes() *gin.Engine {
 		auth.POST("/password/resend", h.resendForgotPasswordCode)
 		// информация о текущем пользователе
 		auth.GET("/me", h.userIdentity, h.getCurrentUser)
+		// загрузка аватара текущего пользователя
+		auth.POST("/me/avatar", h.userIdentity, h.uploadCurrentUserAvatar)
+		// удаление аватара текущего пользователя
+		auth.DELETE("/me/avatar", h.userIdentity, h.deleteCurrentUserAvatar)
 		// удаление текущего пользователя
 		auth.DELETE("/me", h.userIdentity, h.deleteCurrentUser)
 	}
@@ -140,6 +147,13 @@ func (h *Handler) InitRoutes() *gin.Engine {
 	}
 
 	return router
+}
+
+func avatarUploadsRootDir() string {
+	if dir := os.Getenv("AVATAR_UPLOAD_DIR"); dir != "" {
+		return filepath.Dir(dir)
+	}
+	return "./uploads"
 }
 
 func (h *Handler) healthHandler(c *gin.Context) {

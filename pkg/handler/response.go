@@ -171,6 +171,14 @@ func normalizeErrorMessage(statusCode int, message string) string {
 		return "User deleted."
 	case "requested item was not found":
 		return "Requested item was not found."
+	case "avatar file is required":
+		return "Field avatar is required."
+	case "avatar file is too large":
+		return "Avatar file must be 5 MB or smaller."
+	case "avatar must be a png, jpeg, webp or gif image":
+		return "Avatar must be a PNG, JPEG, WEBP or GIF image."
+	case "failed to open avatar file", "failed to read avatar file":
+		return "Could not process the uploaded avatar."
 	}
 
 	if strings.HasPrefix(message, "invalid password: ") {

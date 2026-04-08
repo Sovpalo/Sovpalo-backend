@@ -49,7 +49,9 @@ go run ./cmd/migrate status
 - `POST /auth/password/forgot` — запуск восстановления пароля по `email`, отправляет 4-значный код на email.
 - `POST /auth/password/verify` — подтверждение кода и установка нового пароля. Принимает `email`, `code`, `new_password`.
 - `POST /auth/password/resend` — повторная отправка кода для восстановления пароля.
-- `GET /auth/me` — получение информации о текущем пользователе. Требует `Authorization: Bearer <jwt>`, возвращает `email` и `username`.
+- `GET /auth/me` — получение информации о текущем пользователе. Требует `Authorization: Bearer <jwt>`, возвращает `email`, `username` и `avatar_url`.
+- `POST /auth/me/avatar` — загрузка аватарки текущего пользователя. Требует `Authorization: Bearer <jwt>` и `multipart/form-data` с полем `avatar`. Поддерживаются PNG/JPEG/WEBP/GIF до 5 MB.
+- `DELETE /auth/me/avatar` — удаление аватарки текущего пользователя. Требует `Authorization: Bearer <jwt>`.
 - `DELETE /auth/me` — удаление текущего аккаунта. Требует `Authorization: Bearer <jwt>`. Если пользователь владеет компаниями, они тоже будут удалены вместе со связанными данными.
 
 ### Пример регистрации

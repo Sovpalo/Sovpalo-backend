@@ -29,8 +29,9 @@ type ResetPasswordVerifyInput struct {
 }
 
 type UserProfile struct {
-	Email    string `json:"email"`
-	Username string `json:"username"`
+	Email     string  `json:"email"`
+	Username  string  `json:"username"`
+	AvatarURL *string `json:"avatar_url,omitempty"`
 }
 
 type AuthChallengeType string

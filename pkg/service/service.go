@@ -31,6 +31,8 @@ type Authorization interface {
 	UserExists(email string) (bool, error)
 	UsernameExists(username string) (bool, error)
 	GetProfile(userID int64) (model.UserProfile, error)
+	UpdateAvatar(userID int64, fileName string, fileData []byte) (model.UserProfile, error)
+	DeleteAvatar(userID int64) (model.UserProfile, error)
 	DeleteUser(userID int64) error
 	SendCodeToEmail(to string, code string) error
 	GenerateCode() string

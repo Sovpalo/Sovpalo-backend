@@ -134,6 +134,10 @@ func (r *AuthRepository) GetUserByID(userID int64) (model.User, error) {
 	return r.postgres.GetUserByID(userID)
 }
 
+func (r *AuthRepository) UpdateUserAvatar(userID int64, avatarURL *string) error {
+	return r.postgres.UpdateUserAvatar(userID, avatarURL)
+}
+
 func (r *AuthRepository) DeleteUser(userID int64) error {
 	user, err := r.postgres.GetUserByID(userID)
 	if err != nil {

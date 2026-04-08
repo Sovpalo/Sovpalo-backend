@@ -6,8 +6,12 @@ import (
 	"crypto/sha1"
 	"errors"
 	"fmt"
+	"io/fs"
 	"math/big"
+	"net/http"
 	"os"
+	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/Sovpalo/sovpalo-backend/pkg/model"
@@ -26,7 +30,11 @@ var (
 	ErrPendingRegistrationNotFound = errors.New("pending registration not found")
 	ErrVerificationCodeExpired     = errors.New("verification code expired")
 	ErrIncorrectVerificationCode   = errors.New("incorrect verification code")
+	ErrAvatarTooLarge              = errors.New("avatar file is too large")
+	ErrAvatarInvalidType           = errors.New("avatar must be a png, jpeg, webp or gif image")
 )
+
+const maxAvatarSize = 5 << 20
 
 type AuthService struct {
 	repo         repository.Authorization
@@ -87,6 +95,66 @@ func (s *AuthService) GetProfile(userID int64) (model.UserProfile, error) {
 	}
 
 	return model.UserProfile{
+		Email:     user.Email,
+		Username:  user.Username,
+		AvatarURL: user.AvatarURL,
+	}, nil
+}
+
+func (s *AuthService) UpdateAvatar(userID int64, fileName string, fileData []byte) (model.UserProfile, error) {
+	user, err := s.repo.GetUserByID(userID)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return model.UserProfile{}, ErrUserNotFound
+		}
+		return model.UserProfile{}, err
+	}
+
+	avatarURL, err := saveAvatarFile(userID, fileName, fileData)
+	if err != nil {
+		return model.UserProfile{}, err
+	}
+
+	if err := s.repo.UpdateUserAvatar(userID, &avatarURL); err != nil {
+		_ = removeAvatarByURL(avatarURL)
+		if errors.Is(err, pgx.ErrNoRows) {
+			return model.UserProfile{}, ErrUserNotFound
+		}
+		return model.UserProfile{}, err
+	}
+
+	if user.AvatarURL != nil && *user.AvatarURL != avatarURL {
+		_ = removeAvatarByURL(*user.AvatarURL)
+	}
+
+	return model.UserProfile{
+		Email:     user.Email,
+		Username:  user.Username,
+		AvatarURL: &avatarURL,
+	}, nil
+}
+
+func (s *AuthService) DeleteAvatar(userID int64) (model.UserProfile, error) {
+	user, err := s.repo.GetUserByID(userID)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return model.UserProfile{}, ErrUserNotFound
+		}
+		return model.UserProfile{}, err
+	}
+
+	if err := s.repo.UpdateUserAvatar(userID, nil); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return model.UserProfile{}, ErrUserNotFound
+		}
+		return model.UserProfile{}, err
+	}
+
+	if user.AvatarURL != nil {
+		_ = removeAvatarByURL(*user.AvatarURL)
+	}
+
+	return model.UserProfile{
 		Email:    user.Email,
 		Username: user.Username,
 	}, nil
@@ -101,6 +169,100 @@ func (s *AuthService) DeleteUser(userID int64) error {
 	}
 
 	return nil
+}
+
+func saveAvatarFile(userID int64, fileName string, fileData []byte) (string, error) {
+	if len(fileData) == 0 {
+		return "", ErrAvatarInvalidType
+	}
+	if len(fileData) > maxAvatarSize {
+		return "", ErrAvatarTooLarge
+	}
+
+	contentType := http.DetectContentType(fileData)
+	ext, ok := avatarExtensionByContentType(contentType)
+	if !ok {
+		return "", ErrAvatarInvalidType
+	}
+
+	uploadDir := avatarStorageDir()
+	if err := os.MkdirAll(uploadDir, 0o755); err != nil {
+		return "", err
+	}
+
+	randomPart, err := randomHex(8)
+	if err != nil {
+		return "", err
+	}
+
+	safeName := strings.TrimSuffix(filepath.Base(fileName), filepath.Ext(fileName))
+	if safeName == "." || safeName == string(filepath.Separator) || safeName == "" {
+		safeName = "avatar"
+	}
+
+	fileBase := fmt.Sprintf("user-%d-%d-%s-%s%s", userID, time.Now().Unix(), safeName, randomPart, ext)
+	fullPath := filepath.Join(uploadDir, fileBase)
+	if err := os.WriteFile(fullPath, fileData, 0o644); err != nil {
+		return "", err
+	}
+
+	return "/uploads/avatars/" + fileBase, nil
+}
+
+func removeAvatarByURL(avatarURL string) error {
+	filePath, ok := avatarURLToPath(avatarURL)
+	if !ok {
+		return nil
+	}
+	err := os.Remove(filePath)
+	if errors.Is(err, fs.ErrNotExist) {
+		return nil
+	}
+	return err
+}
+
+func avatarURLToPath(avatarURL string) (string, bool) {
+	const prefix = "/uploads/avatars/"
+	if !strings.HasPrefix(avatarURL, prefix) {
+		return "", false
+	}
+
+	fileName := filepath.Base(strings.TrimPrefix(avatarURL, prefix))
+	if fileName == "." || fileName == string(filepath.Separator) || fileName == "" {
+		return "", false
+	}
+
+	return filepath.Join(avatarStorageDir(), fileName), true
+}
+
+func avatarStorageDir() string {
+	if dir := os.Getenv("AVATAR_UPLOAD_DIR"); dir != "" {
+		return dir
+	}
+	return filepath.Join("uploads", "avatars")
+}
+
+func avatarExtensionByContentType(contentType string) (string, bool) {
+	switch contentType {
+	case "image/jpeg":
+		return ".jpg", true
+	case "image/png":
+		return ".png", true
+	case "image/webp":
+		return ".webp", true
+	case "image/gif":
+		return ".gif", true
+	default:
+		return "", false
+	}
+}
+
+func randomHex(size int) (string, error) {
+	buf := make([]byte, size)
+	if _, err := rand.Read(buf); err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("%x", buf), nil
 }
 
 func (s *AuthService) SendCodeToEmail(to string, code string) error {

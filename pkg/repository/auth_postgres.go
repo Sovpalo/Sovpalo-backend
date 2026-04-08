@@ -69,9 +69,21 @@ func (r *AuthPostgres) GetUserByEmail(email string) (model.User, error) {
 
 func (r *AuthPostgres) GetUserByID(userID int64) (model.User, error) {
 	var user model.User
-	query := "SELECT id, email, username FROM users WHERE id = $1"
-	err := r.pool.QueryRow(context.Background(), query, userID).Scan(&user.ID, &user.Email, &user.Username)
+	query := "SELECT id, email, username, avatar_url FROM users WHERE id = $1"
+	err := r.pool.QueryRow(context.Background(), query, userID).Scan(&user.ID, &user.Email, &user.Username, &user.AvatarURL)
 	return user, err
+}
+
+func (r *AuthPostgres) UpdateUserAvatar(userID int64, avatarURL *string) error {
+	query := "UPDATE users SET avatar_url = $1, updated_at = NOW() WHERE id = $2"
+	tag, err := r.pool.Exec(context.Background(), query, avatarURL, userID)
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() == 0 {
+		return pgx.ErrNoRows
+	}
+	return nil
 }
 
 func (r *AuthPostgres) DeleteUser(userID int64) error {
