@@ -119,6 +119,37 @@ func (h *Handler) deleteCompany(c *gin.Context) {
 	c.JSON(http.StatusOK, statusResponse{Status: "ok"})
 }
 
+func (h *Handler) leaveCompany(c *gin.Context) {
+	userID, err := getUserId(c)
+	if err != nil {
+		newErrorResponse(c, http.StatusUnauthorized, err.Error())
+		return
+	}
+
+	companyID, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		newErrorResponse(c, http.StatusBadRequest, "invalid company id")
+		return
+	}
+
+	var input struct {
+		NewOwnerID *int64 `json:"new_owner_id"`
+	}
+	if c.Request.ContentLength > 0 {
+		if err := c.BindJSON(&input); err != nil {
+			newErrorResponse(c, http.StatusBadRequest, "invalid input body")
+			return
+		}
+	}
+
+	if err := h.services.Company.LeaveCompany(companyID, int64(userID), input.NewOwnerID); err != nil {
+		newErrorResponse(c, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, statusResponse{Status: "ok"})
+}
+
 func (h *Handler) inviteToCompany(c *gin.Context) {
 	userID, err := getUserId(c)
 	if err != nil {

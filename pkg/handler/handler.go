@@ -67,6 +67,8 @@ func (h *Handler) InitRoutes() *gin.Engine {
 		companies.PATCH("/:id", h.updateCompany)
 		// удаление компании (только владелец может удалять) - удаляет компанию и всех её членов
 		companies.DELETE("/:id", h.deleteCompany)
+		// выход из компании; владелец должен сначала назначить нового владельца
+		companies.POST("/:id/leave", h.leaveCompany)
 
 		// приглашение пользователя в компанию (может любой участник), возвращает id приглашения
 		companies.POST("/:id/invitations", h.inviteToCompany)

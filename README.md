@@ -53,6 +53,7 @@ go run ./cmd/migrate status
 - `POST /auth/me/avatar` — загрузка аватарки текущего пользователя. Требует `Authorization: Bearer <jwt>` и `multipart/form-data` с полем `avatar`. Поддерживаются PNG/JPEG/WEBP/GIF до 5 MB.
 - `DELETE /auth/me/avatar` — удаление аватарки текущего пользователя. Требует `Authorization: Bearer <jwt>`.
 - `DELETE /auth/me` — удаление текущего аккаунта. Требует `Authorization: Bearer <jwt>`. Если пользователь владеет компаниями, они тоже будут удалены вместе со связанными данными.
+- `POST /companies/:id/leave` — выход из компании. Обычный участник выходит без тела запроса. Владелец обязан передать `new_owner_id`, чтобы сначала назначить нового владельца.
 
 ### Пример регистрации
 

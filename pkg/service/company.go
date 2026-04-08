@@ -43,6 +43,10 @@ func (s *CompanyService) DeleteCompany(companyID int64, userID int64) error {
 	return s.repo.DeleteCompany(companyID, userID)
 }
 
+func (s *CompanyService) LeaveCompany(companyID int64, userID int64, newOwnerID *int64) error {
+	return s.repo.LeaveCompany(companyID, userID, newOwnerID)
+}
+
 func (s *CompanyService) InviteUser(companyID int64, invitedBy int64, username string) (model.CompanyInvitation, error) {
 	if username == "" {
 		return model.CompanyInvitation{}, errors.New("username is required")

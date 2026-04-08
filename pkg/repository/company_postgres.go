@@ -146,6 +146,79 @@ func (r *CompanyPostgres) DeleteCompany(companyID int64, userID int64) error {
 	return nil
 }
 
+func (r *CompanyPostgres) LeaveCompany(companyID int64, userID int64, newOwnerID *int64) error {
+	ctx := context.Background()
+	tx, err := r.pool.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+
+	var creatorID int64
+	if err := tx.QueryRow(ctx, "SELECT created_by FROM companies WHERE id = $1", companyID).Scan(&creatorID); err != nil {
+		if err == pgx.ErrNoRows {
+			return errors.New("company not found")
+		}
+		return err
+	}
+
+	var isMember bool
+	if err := tx.QueryRow(ctx,
+		"SELECT EXISTS (SELECT 1 FROM company_members WHERE company_id = $1 AND user_id = $2)",
+		companyID, userID,
+	).Scan(&isMember); err != nil {
+		return err
+	}
+	if !isMember {
+		return errors.New("user is not a member of the company")
+	}
+
+	if creatorID == userID {
+		if newOwnerID == nil {
+			return errors.New("owner must appoint a new owner before leaving the company")
+		}
+		if *newOwnerID == userID {
+			return errors.New("new owner must be another company member")
+		}
+
+		var newOwnerIsMember bool
+		if err := tx.QueryRow(ctx,
+			"SELECT EXISTS (SELECT 1 FROM company_members WHERE company_id = $1 AND user_id = $2)",
+			companyID, *newOwnerID,
+		).Scan(&newOwnerIsMember); err != nil {
+			return err
+		}
+		if !newOwnerIsMember {
+			return errors.New("new owner must be a member of the company")
+		}
+
+		if _, err := tx.Exec(ctx, "UPDATE companies SET created_by = $1, updated_at = NOW() WHERE id = $2", *newOwnerID, companyID); err != nil {
+			return err
+		}
+		if _, err := tx.Exec(ctx, "UPDATE company_members SET role = 'owner' WHERE company_id = $1 AND user_id = $2", companyID, *newOwnerID); err != nil {
+			return err
+		}
+		if _, err := tx.Exec(ctx, "UPDATE company_members SET role = 'member' WHERE company_id = $1 AND user_id = $2", companyID, userID); err != nil {
+			return err
+		}
+	} else if newOwnerID != nil {
+		return errors.New("only company owner can appoint a new owner")
+	}
+
+	tag, err := tx.Exec(ctx, "DELETE FROM company_members WHERE company_id = $1 AND user_id = $2", companyID, userID)
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() == 0 {
+		return pgx.ErrNoRows
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return err
+	}
+	return nil
+}
+
 func (r *CompanyPostgres) CreateInvitation(companyID int64, invitedBy int64, username string) (model.CompanyInvitation, error) {
 	ctx := context.Background()
 	tx, err := r.pool.Begin(ctx)
