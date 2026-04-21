@@ -15,13 +15,14 @@ func NewCompanyService(repo repository.Company) *CompanyService {
 	return &CompanyService{repo: repo}
 }
 
-func (s *CompanyService) CreateCompany(userID int64, name string, description *string) (int64, error) {
+func (s *CompanyService) CreateCompany(userID int64, name string, description *string, avatarURL *string) (int64, error) {
 	if name == "" {
 		return 0, errors.New("name is required")
 	}
 	company := model.Company{
 		Name:        name,
 		Description: description,
+		AvatarURL:   avatarURL,
 		CreatedBy:   userID,
 	}
 	return s.repo.CreateCompany(company)

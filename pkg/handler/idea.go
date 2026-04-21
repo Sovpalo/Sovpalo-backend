@@ -89,6 +89,39 @@ func (h *Handler) getCompanyIdea(c *gin.Context) {
 	c.JSON(http.StatusOK, idea)
 }
 
+func (h *Handler) updateCompanyIdea(c *gin.Context) {
+	userID, err := getUserId(c)
+	if err != nil {
+		newErrorResponse(c, http.StatusUnauthorized, err.Error())
+		return
+	}
+
+	companyID, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		newErrorResponse(c, http.StatusBadRequest, "invalid company id")
+		return
+	}
+
+	ideaID, err := strconv.ParseInt(c.Param("idea_id"), 10, 64)
+	if err != nil {
+		newErrorResponse(c, http.StatusBadRequest, "invalid idea id")
+		return
+	}
+
+	var input model.IdeaUpdateInput
+	if err := c.BindJSON(&input); err != nil {
+		newErrorResponse(c, http.StatusBadRequest, "invalid input body")
+		return
+	}
+
+	if err := h.services.Idea.UpdateCompanyIdea(companyID, int64(userID), ideaID, input); err != nil {
+		newErrorResponse(c, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, statusResponse{Status: "ok"})
+}
+
 func (h *Handler) likeCompanyIdea(c *gin.Context) {
 	userID, err := getUserId(c)
 	if err != nil {

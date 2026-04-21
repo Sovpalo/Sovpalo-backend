@@ -126,6 +126,8 @@ func (h *Handler) InitRoutes() *gin.Engine {
 		companyIdeas.GET("", h.listCompanyIdeas)
 		// GET /companies/:id/ideas/:idea_id - get company idea by id
 		companyIdeas.GET("/:idea_id", h.getCompanyIdea)
+		// PATCH /companies/:id/ideas/:idea_id - update company idea by id
+		companyIdeas.PATCH("/:idea_id", h.updateCompanyIdea)
 		// POST /companies/:id/ideas/:idea_id/like - like idea
 		companyIdeas.POST("/:idea_id/like", h.likeCompanyIdea)
 		// DELETE /companies/:id/ideas/:idea_id/like - unlike idea

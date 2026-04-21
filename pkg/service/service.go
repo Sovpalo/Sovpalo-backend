@@ -48,7 +48,7 @@ type Authorization interface {
 }
 
 type Company interface {
-	CreateCompany(userID int64, name string, description *string) (int64, error)
+	CreateCompany(userID int64, name string, description *string, avatarURL *string) (int64, error)
 	GetCompany(companyID int64, userID int64) (model.Company, error)
 	ListCompanies(userID int64) ([]model.Company, error)
 	UpdateCompany(companyID int64, userID int64, input model.CompanyUpdateInput) error
@@ -87,6 +87,7 @@ type Idea interface {
 	CreateCompanyIdea(companyID int64, userID int64, input model.IdeaCreateInput) (int64, error)
 	ListCompanyIdeas(companyID int64, userID int64) ([]model.IdeaView, error)
 	GetCompanyIdea(companyID int64, userID int64, ideaID int64) (model.IdeaView, error)
+	UpdateCompanyIdea(companyID int64, userID int64, ideaID int64, input model.IdeaUpdateInput) error
 	LikeCompanyIdea(companyID int64, userID int64, ideaID int64) error
 	UnlikeCompanyIdea(companyID int64, userID int64, ideaID int64) error
 }

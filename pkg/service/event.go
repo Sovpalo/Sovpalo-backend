@@ -27,6 +27,7 @@ func (s *EventService) CreateEvent(userID int64, input model.EventCreateInput) (
 		CreatedBy:   userID,
 		Title:       input.Title,
 		Description: input.Description,
+		PhotoURL:    input.PhotoURL,
 		StartTime:   input.StartTime,
 		EndTime:     input.EndTime,
 	}
@@ -51,6 +52,9 @@ func (s *EventService) UpdateEvent(eventID int64, userID int64, input model.Even
 	}
 	if input.Description != nil && *input.Description == "" {
 		return errors.New("description cannot be empty")
+	}
+	if input.PhotoURL != nil && *input.PhotoURL == "" {
+		return errors.New("photo_url cannot be empty")
 	}
 	return s.repo.UpdateEvent(eventID, userID, input)
 }

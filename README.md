@@ -73,6 +73,12 @@ go run ./cmd/migrate status
 - `DELETE /auth/me/avatar` — удаление аватарки текущего пользователя. Требует `Authorization: Bearer <jwt>`.
 - `DELETE /auth/me` — удаление текущего аккаунта. Требует `Authorization: Bearer <jwt>`. Если пользователь владеет компаниями, они тоже будут удалены вместе со связанными данными.
 - `POST /companies/:id/leave` — выход из компании. Обычный участник выходит без тела запроса. Владелец обязан передать `new_owner_id`, чтобы сначала назначить нового владельца.
+- `POST /companies` — создание компании. Принимает `name`, опционально `description` и `avatar_url`.
+- `PATCH /companies/:id` — обновление компании владельцем. Можно менять `name`, `description`, `avatar_url`.
+- `POST /events` и `POST /companies/:id/events` — создание встречи. Поддерживают опциональный `photo_url`.
+- `PATCH /events/:id` и `PATCH /companies/:id/events/:event_id` — обновление встречи. Поддерживают `photo_url`.
+- `POST /companies/:id/ideas` — создание идеи. Поддерживает опциональный `photo_url`.
+- `PATCH /companies/:id/ideas/:idea_id` — обновление идеи её автором. Можно менять `title`, `description`, `photo_url`.
 
 ### Пример регистрации
 

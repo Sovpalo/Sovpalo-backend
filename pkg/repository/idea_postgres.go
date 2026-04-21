@@ -3,6 +3,8 @@ package repository
 import (
 	"context"
 	"errors"
+	"fmt"
+	"strings"
 
 	"github.com/Sovpalo/sovpalo-backend/pkg/model"
 	"github.com/jackc/pgx/v5"
@@ -23,12 +25,12 @@ func (r *IdeaPostgres) CreateCompanyIdea(companyID int64, userID int64, input mo
 	}
 
 	query := `
-		INSERT INTO ideas (company_id, created_by, title, description, source)
-		VALUES ($1, $2, $3, $4, 'manual')
+		INSERT INTO ideas (company_id, created_by, title, description, photo_url, source)
+		VALUES ($1, $2, $3, $4, $5, 'manual')
 		RETURNING id
 	`
 	var id int64
-	if err := r.pool.QueryRow(ctx, query, companyID, userID, input.Title, input.Description).Scan(&id); err != nil {
+	if err := r.pool.QueryRow(ctx, query, companyID, userID, input.Title, input.Description, input.PhotoURL).Scan(&id); err != nil {
 		return 0, err
 	}
 	return id, nil
@@ -52,6 +54,7 @@ func (r *IdeaPostgres) ListCompanyIdeas(companyID int64, userID int64) ([]model.
 		SELECT i.id,
 		       i.title,
 		       i.description,
+		       i.photo_url,
 		       i.company_id,
 		       i.created_by,
 		       u.username,
@@ -83,6 +86,7 @@ func (r *IdeaPostgres) ListCompanyIdeas(companyID int64, userID int64) ([]model.
 			&idea.ID,
 			&idea.Title,
 			&idea.Description,
+			&idea.PhotoURL,
 			&idea.CompanyID,
 			&idea.CreatedBy,
 			&idea.CreatedByUsername,
@@ -114,6 +118,7 @@ func (r *IdeaPostgres) GetCompanyIdea(companyID int64, userID int64, ideaID int6
 		SELECT i.id,
 		       i.title,
 		       i.description,
+		       i.photo_url,
 		       i.company_id,
 		       i.created_by,
 		       u.username,
@@ -136,6 +141,7 @@ func (r *IdeaPostgres) GetCompanyIdea(companyID int64, userID int64, ideaID int6
 		&idea.ID,
 		&idea.Title,
 		&idea.Description,
+		&idea.PhotoURL,
 		&idea.CompanyID,
 		&idea.CreatedBy,
 		&idea.CreatedByUsername,
@@ -146,6 +152,64 @@ func (r *IdeaPostgres) GetCompanyIdea(companyID int64, userID int64, ideaID int6
 		return model.IdeaView{}, err
 	}
 	return idea, nil
+}
+
+func (r *IdeaPostgres) UpdateCompanyIdea(companyID int64, userID int64, ideaID int64, input model.IdeaUpdateInput) error {
+	ctx := context.Background()
+
+	var isMember bool
+	if err := r.pool.QueryRow(ctx,
+		"SELECT EXISTS (SELECT 1 FROM company_members WHERE company_id = $1 AND user_id = $2)",
+		companyID, userID,
+	).Scan(&isMember); err != nil {
+		return err
+	}
+	if !isMember {
+		return errors.New("user is not a member of the company")
+	}
+
+	setParts := make([]string, 0, 4)
+	args := make([]interface{}, 0, 6)
+	argID := 1
+
+	if input.Title != nil {
+		setParts = append(setParts, fmt.Sprintf("title = $%d", argID))
+		args = append(args, *input.Title)
+		argID++
+	}
+	if input.Description != nil {
+		setParts = append(setParts, fmt.Sprintf("description = $%d", argID))
+		args = append(args, *input.Description)
+		argID++
+	}
+	if input.PhotoURL != nil {
+		setParts = append(setParts, fmt.Sprintf("photo_url = $%d", argID))
+		args = append(args, *input.PhotoURL)
+		argID++
+	}
+
+	if len(setParts) == 0 {
+		return errors.New("no fields to update")
+	}
+
+	setParts = append(setParts, "updated_at = NOW()")
+	query := fmt.Sprintf(
+		"UPDATE ideas SET %s WHERE id = $%d AND company_id = $%d AND created_by = $%d",
+		strings.Join(setParts, ", "),
+		argID,
+		argID+1,
+		argID+2,
+	)
+	args = append(args, ideaID, companyID, userID)
+
+	tag, err := r.pool.Exec(ctx, query, args...)
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() == 0 {
+		return pgx.ErrNoRows
+	}
+	return nil
 }
 
 func (r *IdeaPostgres) LikeCompanyIdea(companyID int64, userID int64, ideaID int64) error {

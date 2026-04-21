@@ -20,8 +20,8 @@ func (r *CompanyPostgres) CreateCompany(company model.Company) (int64, error) {
 	defer tx.Rollback(ctx)
 
 	var id int64
-	query := "INSERT INTO companies (name, description, created_by) VALUES ($1, $2, $3) RETURNING id"
-	if err := tx.QueryRow(ctx, query, company.Name, company.Description, company.CreatedBy).Scan(&id); err != nil {
+	query := "INSERT INTO companies (name, description, avatar_url, created_by) VALUES ($1, $2, $3, $4) RETURNING id"
+	if err := tx.QueryRow(ctx, query, company.Name, company.Description, company.AvatarURL, company.CreatedBy).Scan(&id); err != nil {
 		return 0, err
 	}
 
@@ -41,7 +41,7 @@ func (r *CompanyPostgres) GetCompany(companyID int64, userID int64) (model.Compa
 	ctx := context.Background()
 	var company model.Company
 	query := `
-		SELECT c.id, c.name, c.description, c.created_by, c.created_at, c.updated_at
+		SELECT c.id, c.name, c.description, c.avatar_url, c.created_by, c.created_at, c.updated_at
 		FROM companies c
 		JOIN company_members cm ON cm.company_id = c.id
 		WHERE c.id = $1 AND cm.user_id = $2
@@ -50,6 +50,7 @@ func (r *CompanyPostgres) GetCompany(companyID int64, userID int64) (model.Compa
 		&company.ID,
 		&company.Name,
 		&company.Description,
+		&company.AvatarURL,
 		&company.CreatedBy,
 		&company.CreatedAt,
 		&company.UpdatedAt,
@@ -63,7 +64,7 @@ func (r *CompanyPostgres) GetCompany(companyID int64, userID int64) (model.Compa
 func (r *CompanyPostgres) ListCompanies(userID int64) ([]model.Company, error) {
 	ctx := context.Background()
 	query := `
-		SELECT c.id, c.name, c.description, c.created_by, c.created_at, c.updated_at
+		SELECT c.id, c.name, c.description, c.avatar_url, c.created_by, c.created_at, c.updated_at
 		FROM companies c
 		JOIN company_members cm ON cm.company_id = c.id
 		WHERE cm.user_id = $1
@@ -82,6 +83,7 @@ func (r *CompanyPostgres) ListCompanies(userID int64) ([]model.Company, error) {
 			&company.ID,
 			&company.Name,
 			&company.Description,
+			&company.AvatarURL,
 			&company.CreatedBy,
 			&company.CreatedAt,
 			&company.UpdatedAt,
@@ -95,7 +97,7 @@ func (r *CompanyPostgres) ListCompanies(userID int64) ([]model.Company, error) {
 
 func (r *CompanyPostgres) UpdateCompany(companyID int64, userID int64, input model.CompanyUpdateInput) error {
 	ctx := context.Background()
-	setParts := make([]string, 0, 3)
+	setParts := make([]string, 0, 4)
 	args := make([]interface{}, 0, 4)
 	argID := 1
 
@@ -107,6 +109,11 @@ func (r *CompanyPostgres) UpdateCompany(companyID int64, userID int64, input mod
 	if input.Description != nil {
 		setParts = append(setParts, fmt.Sprintf("description = $%d", argID))
 		args = append(args, *input.Description)
+		argID++
+	}
+	if input.AvatarURL != nil {
+		setParts = append(setParts, fmt.Sprintf("avatar_url = $%d", argID))
+		args = append(args, *input.AvatarURL)
 		argID++
 	}
 

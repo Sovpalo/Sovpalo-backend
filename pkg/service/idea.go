@@ -30,6 +30,19 @@ func (s *IdeaService) GetCompanyIdea(companyID int64, userID int64, ideaID int64
 	return s.repo.GetCompanyIdea(companyID, userID, ideaID)
 }
 
+func (s *IdeaService) UpdateCompanyIdea(companyID int64, userID int64, ideaID int64, input model.IdeaUpdateInput) error {
+	if input.Title != nil && *input.Title == "" {
+		return errors.New("title cannot be empty")
+	}
+	if input.Description != nil && *input.Description == "" {
+		return errors.New("description cannot be empty")
+	}
+	if input.PhotoURL != nil && *input.PhotoURL == "" {
+		return errors.New("photo_url cannot be empty")
+	}
+	return s.repo.UpdateCompanyIdea(companyID, userID, ideaID, input)
+}
+
 func (s *IdeaService) LikeCompanyIdea(companyID int64, userID int64, ideaID int64) error {
 	return s.repo.LikeCompanyIdea(companyID, userID, ideaID)
 }

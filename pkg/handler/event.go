@@ -12,6 +12,7 @@ import (
 type eventInput struct {
 	Title       string  `json:"title"`
 	Description *string `json:"description,omitempty"`
+	PhotoURL    *string `json:"photo_url,omitempty"`
 	StartTime   string  `json:"start_time"`
 	EndTime     *string `json:"end_time,omitempty"`
 	CompanyID   *int64  `json:"company_id,omitempty"`
@@ -49,6 +50,7 @@ func (h *Handler) createEvent(c *gin.Context) {
 	eventID, err := h.services.Event.CreateEvent(int64(userID), model.EventCreateInput{
 		Title:       input.Title,
 		Description: input.Description,
+		PhotoURL:    input.PhotoURL,
 		StartTime:   &startTime,
 		EndTime:     endTime,
 		CompanyID:   input.CompanyID,
@@ -141,6 +143,7 @@ func (h *Handler) updateEvent(c *gin.Context) {
 	updateInput := model.EventUpdateInput{
 		CompanyID:   input.CompanyID,
 		Description: input.Description,
+		PhotoURL:    input.PhotoURL,
 	}
 	if input.Title != "" {
 		updateInput.Title = &input.Title
@@ -249,6 +252,7 @@ func (h *Handler) createCompanyEvent(c *gin.Context) {
 	eventID, err := h.services.Event.CreateEvent(int64(userID), model.EventCreateInput{
 		Title:       input.Title,
 		Description: input.Description,
+		PhotoURL:    input.PhotoURL,
 		StartTime:   &startTime,
 		EndTime:     endTime,
 		CompanyID:   &companyID,

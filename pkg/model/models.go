@@ -29,6 +29,7 @@ type Company struct {
 	ID          int64     `db:"id" json:"id"`
 	Name        string    `db:"name" json:"name"`
 	Description *string   `db:"description" json:"description,omitempty"`
+	AvatarURL   *string   `db:"avatar_url" json:"avatar_url,omitempty"`
 	CreatedBy   int64     `db:"created_by" json:"created_by"`
 	CreatedAt   time.Time `db:"created_at" json:"created_at"`
 	UpdatedAt   time.Time `db:"updated_at" json:"updated_at"`
@@ -71,6 +72,7 @@ type CompanyInvitationView struct {
 type CompanyUpdateInput struct {
 	Name        *string `json:"name,omitempty"`
 	Description *string `json:"description,omitempty"`
+	AvatarURL   *string `json:"avatar_url,omitempty"`
 }
 
 type Event struct {
@@ -79,6 +81,7 @@ type Event struct {
 	CreatedBy   int64      `db:"created_by" json:"created_by"`
 	Title       string     `db:"title" json:"title"`
 	Description *string    `db:"description" json:"description,omitempty"`
+	PhotoURL    *string    `db:"photo_url" json:"photo_url,omitempty"`
 	StartTime   *time.Time `db:"start_time" json:"start_time,omitempty"`
 	EndTime     *time.Time `db:"end_time" json:"end_time,omitempty"`
 	PlaceName   *string    `db:"place_name" json:"place_name,omitempty"`
@@ -110,6 +113,7 @@ type Idea struct {
 	CreatedBy   int64     `db:"created_by" json:"created_by"`
 	Title       string    `db:"title" json:"title"`
 	Description *string   `db:"description" json:"description,omitempty"`
+	PhotoURL    *string   `db:"photo_url" json:"photo_url,omitempty"`
 	Source      string    `db:"source" json:"source"`
 	LLMPrompt   *string   `db:"llm_prompt" json:"llm_prompt,omitempty"`
 	IsSaved     bool      `db:"is_saved" json:"is_saved"`
@@ -121,6 +125,7 @@ type IdeaView struct {
 	ID                int64   `db:"id" json:"id"`
 	Title             string  `db:"title" json:"title"`
 	Description       *string `db:"description" json:"description,omitempty"`
+	PhotoURL          *string `db:"photo_url" json:"photo_url,omitempty"`
 	CompanyID         int64   `db:"company_id" json:"company_id"`
 	CreatedBy         int64   `db:"created_by" json:"created_by"`
 	CreatedByUsername string  `db:"created_by_username" json:"created_by_username"`

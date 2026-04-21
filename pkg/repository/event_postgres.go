@@ -28,8 +28,8 @@ func (r *EventPostgres) CreateEvent(event model.Event) (int64, error) {
 	}
 
 	query := `
-		INSERT INTO events (company_id, created_by, title, description, start_time, end_time, place_name, place_link, status)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'pending')
+		INSERT INTO events (company_id, created_by, title, description, photo_url, start_time, end_time, place_name, place_link, status)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'pending')
 		RETURNING id
 	`
 	var id int64
@@ -40,6 +40,7 @@ func (r *EventPostgres) CreateEvent(event model.Event) (int64, error) {
 		event.CreatedBy,
 		event.Title,
 		event.Description,
+		event.PhotoURL,
 		event.StartTime,
 		event.EndTime,
 		event.PlaceName,
@@ -55,7 +56,7 @@ func (r *EventPostgres) GetEvent(eventID int64, userID int64) (model.Event, erro
 	ctx := context.Background()
 	var event model.Event
 	query := `
-		SELECT e.id, e.company_id, e.created_by, e.title, e.description, e.start_time, e.end_time,
+		SELECT e.id, e.company_id, e.created_by, e.title, e.description, e.photo_url, e.start_time, e.end_time,
 		       e.place_name, e.place_link, e.status, e.created_at, e.updated_at
 		FROM events e
 		LEFT JOIN company_members cm ON cm.company_id = e.company_id AND cm.user_id = $2
@@ -71,6 +72,7 @@ func (r *EventPostgres) GetEvent(eventID int64, userID int64) (model.Event, erro
 		&event.CreatedBy,
 		&event.Title,
 		&event.Description,
+		&event.PhotoURL,
 		&event.StartTime,
 		&event.EndTime,
 		&event.PlaceName,
@@ -88,7 +90,7 @@ func (r *EventPostgres) GetEvent(eventID int64, userID int64) (model.Event, erro
 func (r *EventPostgres) ListEvents(userID int64) ([]model.Event, error) {
 	ctx := context.Background()
 	query := `
-		SELECT DISTINCT e.id, e.company_id, e.created_by, e.title, e.description, e.start_time, e.end_time,
+		SELECT DISTINCT e.id, e.company_id, e.created_by, e.title, e.description, e.photo_url, e.start_time, e.end_time,
 		       e.place_name, e.place_link, e.status, e.created_at, e.updated_at
 		FROM events e
 		LEFT JOIN company_members cm ON cm.company_id = e.company_id AND cm.user_id = $1
@@ -111,6 +113,7 @@ func (r *EventPostgres) ListEvents(userID int64) ([]model.Event, error) {
 			&event.CreatedBy,
 			&event.Title,
 			&event.Description,
+			&event.PhotoURL,
 			&event.StartTime,
 			&event.EndTime,
 			&event.PlaceName,
@@ -140,7 +143,7 @@ func (r *EventPostgres) ListCompanyEvents(companyID int64, userID int64) ([]mode
 	}
 
 	query := `
-		SELECT e.id, e.company_id, e.created_by, e.title, e.description, e.start_time, e.end_time,
+		SELECT e.id, e.company_id, e.created_by, e.title, e.description, e.photo_url, e.start_time, e.end_time,
 		       e.place_name, e.place_link, e.status, e.created_at, e.updated_at
 		FROM events e
 		WHERE e.company_id = $1
@@ -161,6 +164,7 @@ func (r *EventPostgres) ListCompanyEvents(companyID int64, userID int64) ([]mode
 			&event.CreatedBy,
 			&event.Title,
 			&event.Description,
+			&event.PhotoURL,
 			&event.StartTime,
 			&event.EndTime,
 			&event.PlaceName,
@@ -179,8 +183,8 @@ func (r *EventPostgres) ListCompanyEvents(companyID int64, userID int64) ([]mode
 func (r *EventPostgres) UpdateEvent(eventID int64, userID int64, input model.EventUpdateInput) error {
 	ctx := context.Background()
 
-	setParts := make([]string, 0, 5)
-	args := make([]interface{}, 0, 6)
+	setParts := make([]string, 0, 6)
+	args := make([]interface{}, 0, 7)
 	argID := 1
 
 	if input.Title != nil {
@@ -191,6 +195,11 @@ func (r *EventPostgres) UpdateEvent(eventID int64, userID int64, input model.Eve
 	if input.Description != nil {
 		setParts = append(setParts, fmt.Sprintf("description = $%d", argID))
 		args = append(args, *input.Description)
+		argID++
+	}
+	if input.PhotoURL != nil {
+		setParts = append(setParts, fmt.Sprintf("photo_url = $%d", argID))
+		args = append(args, *input.PhotoURL)
 		argID++
 	}
 	if input.StartTime != nil {

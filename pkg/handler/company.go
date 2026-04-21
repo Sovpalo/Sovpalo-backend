@@ -12,6 +12,7 @@ func (h *Handler) createCompany(c *gin.Context) {
 	var input struct {
 		Name        string  `json:"name" binding:"required"`
 		Description *string `json:"description"`
+		AvatarURL   *string `json:"avatar_url"`
 	}
 	if err := c.BindJSON(&input); err != nil {
 		newErrorResponse(c, http.StatusBadRequest, "invalid input body")
@@ -24,7 +25,7 @@ func (h *Handler) createCompany(c *gin.Context) {
 		return
 	}
 
-	id, err := h.services.Company.CreateCompany(int64(userID), input.Name, input.Description)
+	id, err := h.services.Company.CreateCompany(int64(userID), input.Name, input.Description, input.AvatarURL)
 	if err != nil {
 		newErrorResponse(c, http.StatusBadRequest, err.Error())
 		return
