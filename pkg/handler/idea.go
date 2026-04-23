@@ -1,10 +1,13 @@
 package handler
 
 import (
+	"errors"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/Sovpalo/sovpalo-backend/pkg/model"
+	"github.com/Sovpalo/sovpalo-backend/pkg/service"
 	"github.com/gin-gonic/gin"
 )
 
@@ -108,18 +111,58 @@ func (h *Handler) updateCompanyIdea(c *gin.Context) {
 		return
 	}
 
-	var input model.IdeaUpdateInput
-	if err := c.BindJSON(&input); err != nil {
-		newErrorResponse(c, http.StatusBadRequest, "invalid input body")
+	input, photoFileName, photoFileData, err := parseIdeaUpdateInput(c)
+	if err != nil {
+		newErrorResponse(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	if err := h.services.Idea.UpdateCompanyIdea(companyID, int64(userID), ideaID, input); err != nil {
+	if err := h.services.Idea.UpdateCompanyIdea(companyID, int64(userID), ideaID, input, photoFileName, photoFileData); err != nil {
+		if errors.Is(err, service.ErrAvatarTooLarge) || errors.Is(err, service.ErrAvatarInvalidType) {
+			newErrorResponse(c, http.StatusBadRequest, err.Error())
+			return
+		}
 		newErrorResponse(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
 	c.JSON(http.StatusOK, statusResponse{Status: "ok"})
+}
+
+func parseIdeaUpdateInput(c *gin.Context) (model.IdeaUpdateInput, string, []byte, error) {
+	contentType := c.GetHeader("Content-Type")
+	if !strings.HasPrefix(contentType, "multipart/form-data") {
+		var input model.IdeaUpdateInput
+		if err := c.BindJSON(&input); err != nil {
+			return model.IdeaUpdateInput{}, "", nil, errors.New("invalid input body")
+		}
+		return input, "", nil, nil
+	}
+
+	if err := c.Request.ParseMultipartForm(maxAvatarUploadSize + 1024); err != nil {
+		return model.IdeaUpdateInput{}, "", nil, errors.New("invalid multipart form")
+	}
+
+	input := model.IdeaUpdateInput{}
+	if _, ok := c.Request.MultipartForm.Value["title"]; ok {
+		value := c.PostForm("title")
+		input.Title = &value
+	}
+	if _, ok := c.Request.MultipartForm.Value["description"]; ok {
+		value := c.PostForm("description")
+		input.Description = &value
+	}
+	if _, ok := c.Request.MultipartForm.Value["photo_url"]; ok {
+		value := c.PostForm("photo_url")
+		input.PhotoURL = &value
+	}
+
+	fileName, fileData, err := readMultipartImage(c, "photo")
+	if err != nil {
+		return model.IdeaUpdateInput{}, "", nil, err
+	}
+
+	return input, fileName, fileData, nil
 }
 
 func (h *Handler) likeCompanyIdea(c *gin.Context) {

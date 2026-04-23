@@ -2,7 +2,6 @@ package handler
 
 import (
 	"errors"
-	"io"
 	"net/http"
 	"strconv"
 	"strings"
@@ -135,32 +134,12 @@ func parseCompanyUpdateInput(c *gin.Context) (model.CompanyUpdateInput, string, 
 		input.AvatarURL = &value
 	}
 
-	fileHeader, err := c.FormFile("avatar")
+	fileName, fileData, err := readMultipartImage(c, "avatar")
 	if err != nil {
-		if errors.Is(err, http.ErrMissingFile) {
-			return input, "", nil, nil
-		}
-		return model.CompanyUpdateInput{}, "", nil, errors.New("failed to read avatar file")
-	}
-	if fileHeader.Size > maxAvatarUploadSize {
-		return model.CompanyUpdateInput{}, "", nil, service.ErrAvatarTooLarge
+		return model.CompanyUpdateInput{}, "", nil, err
 	}
 
-	file, err := fileHeader.Open()
-	if err != nil {
-		return model.CompanyUpdateInput{}, "", nil, errors.New("failed to open avatar file")
-	}
-	defer file.Close()
-
-	fileData, err := io.ReadAll(io.LimitReader(file, maxAvatarUploadSize+1))
-	if err != nil {
-		return model.CompanyUpdateInput{}, "", nil, errors.New("failed to read avatar file")
-	}
-	if len(fileData) > maxAvatarUploadSize {
-		return model.CompanyUpdateInput{}, "", nil, service.ErrAvatarTooLarge
-	}
-
-	return input, fileHeader.Filename, fileData, nil
+	return input, fileName, fileData, nil
 }
 
 func (h *Handler) deleteCompany(c *gin.Context) {

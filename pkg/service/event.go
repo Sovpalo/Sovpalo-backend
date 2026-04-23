@@ -46,7 +46,7 @@ func (s *EventService) ListCompanyEvents(companyID int64, userID int64) ([]model
 	return s.repo.ListCompanyEvents(companyID, userID)
 }
 
-func (s *EventService) UpdateEvent(eventID int64, userID int64, input model.EventUpdateInput) error {
+func (s *EventService) UpdateEvent(eventID int64, userID int64, input model.EventUpdateInput, photoFileName string, photoFileData []byte) error {
 	if input.Title != nil && *input.Title == "" {
 		return errors.New("title cannot be empty")
 	}
@@ -56,7 +56,33 @@ func (s *EventService) UpdateEvent(eventID int64, userID int64, input model.Even
 	if input.PhotoURL != nil && *input.PhotoURL == "" {
 		return errors.New("photo_url cannot be empty")
 	}
-	return s.repo.UpdateEvent(eventID, userID, input)
+
+	event, err := s.repo.GetEvent(eventID, userID)
+	if err != nil {
+		return err
+	}
+
+	var newPhotoURL string
+	if len(photoFileData) > 0 {
+		newPhotoURL, err = saveEntityAvatarFile("event", eventID, photoFileName, photoFileData)
+		if err != nil {
+			return err
+		}
+		input.PhotoURL = &newPhotoURL
+	}
+
+	if err := s.repo.UpdateEvent(eventID, userID, input); err != nil {
+		if newPhotoURL != "" {
+			_ = removeAvatarByURL(newPhotoURL)
+		}
+		return err
+	}
+
+	if newPhotoURL != "" && event.PhotoURL != nil && *event.PhotoURL != newPhotoURL {
+		_ = removeAvatarByURL(*event.PhotoURL)
+	}
+
+	return nil
 }
 
 func (s *EventService) DeleteEvent(eventID int64, userID int64) error {

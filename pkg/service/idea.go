@@ -30,7 +30,7 @@ func (s *IdeaService) GetCompanyIdea(companyID int64, userID int64, ideaID int64
 	return s.repo.GetCompanyIdea(companyID, userID, ideaID)
 }
 
-func (s *IdeaService) UpdateCompanyIdea(companyID int64, userID int64, ideaID int64, input model.IdeaUpdateInput) error {
+func (s *IdeaService) UpdateCompanyIdea(companyID int64, userID int64, ideaID int64, input model.IdeaUpdateInput, photoFileName string, photoFileData []byte) error {
 	if input.Title != nil && *input.Title == "" {
 		return errors.New("title cannot be empty")
 	}
@@ -40,7 +40,33 @@ func (s *IdeaService) UpdateCompanyIdea(companyID int64, userID int64, ideaID in
 	if input.PhotoURL != nil && *input.PhotoURL == "" {
 		return errors.New("photo_url cannot be empty")
 	}
-	return s.repo.UpdateCompanyIdea(companyID, userID, ideaID, input)
+
+	idea, err := s.repo.GetCompanyIdea(companyID, userID, ideaID)
+	if err != nil {
+		return err
+	}
+
+	var newPhotoURL string
+	if len(photoFileData) > 0 {
+		newPhotoURL, err = saveEntityAvatarFile("idea", ideaID, photoFileName, photoFileData)
+		if err != nil {
+			return err
+		}
+		input.PhotoURL = &newPhotoURL
+	}
+
+	if err := s.repo.UpdateCompanyIdea(companyID, userID, ideaID, input); err != nil {
+		if newPhotoURL != "" {
+			_ = removeAvatarByURL(newPhotoURL)
+		}
+		return err
+	}
+
+	if newPhotoURL != "" && idea.PhotoURL != nil && *idea.PhotoURL != newPhotoURL {
+		_ = removeAvatarByURL(*idea.PhotoURL)
+	}
+
+	return nil
 }
 
 func (s *IdeaService) LikeCompanyIdea(companyID int64, userID int64, ideaID int64) error {

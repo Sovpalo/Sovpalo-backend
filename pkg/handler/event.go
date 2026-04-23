@@ -1,11 +1,14 @@
 package handler
 
 import (
+	"errors"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/Sovpalo/sovpalo-backend/pkg/model"
+	"github.com/Sovpalo/sovpalo-backend/pkg/service"
 	"github.com/gin-gonic/gin"
 )
 
@@ -114,18 +117,95 @@ func (h *Handler) updateEvent(c *gin.Context) {
 		return
 	}
 
-	var input eventInput
-	if err := c.BindJSON(&input); err != nil {
-		newErrorResponse(c, http.StatusBadRequest, "invalid input body")
+	updateInput, photoFileName, photoFileData, err := parseEventUpdateInput(c)
+	if err != nil {
+		newErrorResponse(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
+	if err := h.services.Event.UpdateEvent(eventID, int64(userID), updateInput, photoFileName, photoFileData); err != nil {
+		if errors.Is(err, service.ErrAvatarTooLarge) || errors.Is(err, service.ErrAvatarInvalidType) {
+			newErrorResponse(c, http.StatusBadRequest, err.Error())
+			return
+		}
+		newErrorResponse(c, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, statusResponse{Status: "ok"})
+}
+
+func parseEventUpdateInput(c *gin.Context) (model.EventUpdateInput, string, []byte, error) {
+	contentType := c.GetHeader("Content-Type")
+	if !strings.HasPrefix(contentType, "multipart/form-data") {
+		var input eventInput
+		if err := c.BindJSON(&input); err != nil {
+			return model.EventUpdateInput{}, "", nil, errors.New("invalid input body")
+		}
+		updateInput, err := buildEventUpdateInput(input)
+		return updateInput, "", nil, err
+	}
+
+	if err := c.Request.ParseMultipartForm(maxAvatarUploadSize + 1024); err != nil {
+		return model.EventUpdateInput{}, "", nil, errors.New("invalid multipart form")
+	}
+
+	updateInput := model.EventUpdateInput{}
+	if _, ok := c.Request.MultipartForm.Value["title"]; ok {
+		value := c.PostForm("title")
+		updateInput.Title = &value
+	}
+	if _, ok := c.Request.MultipartForm.Value["description"]; ok {
+		value := c.PostForm("description")
+		updateInput.Description = &value
+	}
+	if _, ok := c.Request.MultipartForm.Value["photo_url"]; ok {
+		value := c.PostForm("photo_url")
+		updateInput.PhotoURL = &value
+	}
+	if _, ok := c.Request.MultipartForm.Value["company_id"]; ok {
+		value := c.PostForm("company_id")
+		companyID, err := strconv.ParseInt(value, 10, 64)
+		if err != nil {
+			return model.EventUpdateInput{}, "", nil, errors.New("invalid company_id")
+		}
+		updateInput.CompanyID = &companyID
+	}
+	if _, ok := c.Request.MultipartForm.Value["start_time"]; ok {
+		value := c.PostForm("start_time")
+		if value != "" {
+			startTime, err := time.Parse(time.RFC3339, value)
+			if err != nil {
+				return model.EventUpdateInput{}, "", nil, errors.New("invalid start_time")
+			}
+			updateInput.StartTime = &startTime
+		}
+	}
+	if _, ok := c.Request.MultipartForm.Value["end_time"]; ok {
+		value := c.PostForm("end_time")
+		if value != "" {
+			endTime, err := time.Parse(time.RFC3339, value)
+			if err != nil {
+				return model.EventUpdateInput{}, "", nil, errors.New("invalid end_time")
+			}
+			updateInput.EndTime = &endTime
+		}
+	}
+
+	fileName, fileData, err := readMultipartImage(c, "photo")
+	if err != nil {
+		return model.EventUpdateInput{}, "", nil, err
+	}
+
+	return updateInput, fileName, fileData, nil
+}
+
+func buildEventUpdateInput(input eventInput) (model.EventUpdateInput, error) {
 	var startTime *time.Time
 	if input.StartTime != "" {
 		parsedStart, err := time.Parse(time.RFC3339, input.StartTime)
 		if err != nil {
-			newErrorResponse(c, http.StatusBadRequest, "invalid start_time")
-			return
+			return model.EventUpdateInput{}, errors.New("invalid start_time")
 		}
 		startTime = &parsedStart
 	}
@@ -134,8 +214,7 @@ func (h *Handler) updateEvent(c *gin.Context) {
 	if input.EndTime != nil && *input.EndTime != "" {
 		parsedEnd, err := time.Parse(time.RFC3339, *input.EndTime)
 		if err != nil {
-			newErrorResponse(c, http.StatusBadRequest, "invalid end_time")
-			return
+			return model.EventUpdateInput{}, errors.New("invalid end_time")
 		}
 		endTime = &parsedEnd
 	}
@@ -155,12 +234,7 @@ func (h *Handler) updateEvent(c *gin.Context) {
 		updateInput.EndTime = endTime
 	}
 
-	if err := h.services.Event.UpdateEvent(eventID, int64(userID), updateInput); err != nil {
-		newErrorResponse(c, http.StatusBadRequest, err.Error())
-		return
-	}
-
-	c.JSON(http.StatusOK, statusResponse{Status: "ok"})
+	return updateInput, nil
 }
 
 func (h *Handler) deleteEvent(c *gin.Context) {
@@ -326,52 +400,23 @@ func (h *Handler) updateCompanyEvent(c *gin.Context) {
 		return
 	}
 
-	var input eventInput
-	if err := c.BindJSON(&input); err != nil {
-		newErrorResponse(c, http.StatusBadRequest, "invalid input body")
+	updateInput, photoFileName, photoFileData, err := parseEventUpdateInput(c)
+	if err != nil {
+		newErrorResponse(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	if input.CompanyID != nil && *input.CompanyID != companyID {
+	if updateInput.CompanyID != nil && *updateInput.CompanyID != companyID {
 		newErrorResponse(c, http.StatusBadRequest, "company_id mismatch")
 		return
 	}
+	updateInput.CompanyID = nil
 
-	var startTime *time.Time
-	if input.StartTime != "" {
-		parsedStart, err := time.Parse(time.RFC3339, input.StartTime)
-		if err != nil {
-			newErrorResponse(c, http.StatusBadRequest, "invalid start_time")
+	if err := h.services.Event.UpdateEvent(eventID, int64(userID), updateInput, photoFileName, photoFileData); err != nil {
+		if errors.Is(err, service.ErrAvatarTooLarge) || errors.Is(err, service.ErrAvatarInvalidType) {
+			newErrorResponse(c, http.StatusBadRequest, err.Error())
 			return
 		}
-		startTime = &parsedStart
-	}
-
-	var endTime *time.Time
-	if input.EndTime != nil && *input.EndTime != "" {
-		parsedEnd, err := time.Parse(time.RFC3339, *input.EndTime)
-		if err != nil {
-			newErrorResponse(c, http.StatusBadRequest, "invalid end_time")
-			return
-		}
-		endTime = &parsedEnd
-	}
-
-	updateInput := model.EventUpdateInput{
-		CompanyID:   nil,
-		Description: input.Description,
-	}
-	if input.Title != "" {
-		updateInput.Title = &input.Title
-	}
-	if startTime != nil {
-		updateInput.StartTime = startTime
-	}
-	if endTime != nil {
-		updateInput.EndTime = endTime
-	}
-
-	if err := h.services.Event.UpdateEvent(eventID, int64(userID), updateInput); err != nil {
 		newErrorResponse(c, http.StatusBadRequest, err.Error())
 		return
 	}

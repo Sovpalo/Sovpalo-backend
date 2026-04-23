@@ -68,7 +68,7 @@ type Event interface {
 	GetEvent(eventID int64, userID int64) (model.Event, error)
 	ListEvents(userID int64) ([]model.Event, error)
 	ListCompanyEvents(companyID int64, userID int64) ([]model.Event, error)
-	UpdateEvent(eventID int64, userID int64, input model.EventUpdateInput) error
+	UpdateEvent(eventID int64, userID int64, input model.EventUpdateInput, photoFileName string, photoFileData []byte) error
 	DeleteEvent(eventID int64, userID int64) error
 	SetCompanyEventAttendance(companyID int64, eventID int64, userID int64, status string) error
 	ListCompanyEventAttendance(companyID int64, eventID int64, userID int64) ([]model.EventAttendanceView, error)
@@ -87,7 +87,7 @@ type Idea interface {
 	CreateCompanyIdea(companyID int64, userID int64, input model.IdeaCreateInput) (int64, error)
 	ListCompanyIdeas(companyID int64, userID int64) ([]model.IdeaView, error)
 	GetCompanyIdea(companyID int64, userID int64, ideaID int64) (model.IdeaView, error)
-	UpdateCompanyIdea(companyID int64, userID int64, ideaID int64, input model.IdeaUpdateInput) error
+	UpdateCompanyIdea(companyID int64, userID int64, ideaID int64, input model.IdeaUpdateInput, photoFileName string, photoFileData []byte) error
 	LikeCompanyIdea(companyID int64, userID int64, ideaID int64) error
 	UnlikeCompanyIdea(companyID int64, userID int64, ideaID int64) error
 }
