@@ -50,9 +50,10 @@ func (r *AvailabilityPostgres) ListAvailability(companyID int64, userID int64) (
 	}
 
 	query := `
-		SELECT ua.id, ua.user_id, ua.company_id, ua.start_time, ua.end_time, ua.note, ua.created_at, ua.updated_at
+		SELECT ua.id, ua.user_id, u.avatar_url, ua.company_id, ua.start_time, ua.end_time, ua.note, ua.created_at, ua.updated_at
 		FROM user_availability ua
 		JOIN company_members cm ON cm.company_id = ua.company_id AND cm.user_id = ua.user_id
+		JOIN users u ON u.id = ua.user_id
 		WHERE ua.company_id = $1 AND ua.user_id = $2
 		ORDER BY ua.start_time
 	`
@@ -68,6 +69,7 @@ func (r *AvailabilityPostgres) ListAvailability(companyID int64, userID int64) (
 		if err := rows.Scan(
 			&item.ID,
 			&item.UserID,
+			&item.AvatarURL,
 			&item.CompanyID,
 			&item.StartTime,
 			&item.EndTime,
@@ -97,9 +99,10 @@ func (r *AvailabilityPostgres) ListCompanyAvailability(companyID int64, userID i
 	}
 
 	query := `
-		SELECT ua.id, ua.user_id, ua.company_id, ua.start_time, ua.end_time, ua.note, ua.created_at, ua.updated_at
+		SELECT ua.id, ua.user_id, u.avatar_url, ua.company_id, ua.start_time, ua.end_time, ua.note, ua.created_at, ua.updated_at
 		FROM user_availability ua
 		JOIN company_members cm ON cm.company_id = ua.company_id AND cm.user_id = ua.user_id
+		JOIN users u ON u.id = ua.user_id
 		WHERE ua.company_id = $1
 		ORDER BY ua.user_id, ua.start_time
 	`
@@ -115,6 +118,7 @@ func (r *AvailabilityPostgres) ListCompanyAvailability(companyID int64, userID i
 		if err := rows.Scan(
 			&item.ID,
 			&item.UserID,
+			&item.AvatarURL,
 			&item.CompanyID,
 			&item.StartTime,
 			&item.EndTime,
@@ -185,9 +189,10 @@ func (r *AvailabilityPostgres) ListCompanyMemberIDs(companyID int64) ([]int64, e
 func (r *AvailabilityPostgres) ListAvailabilityInRange(companyID int64, start time.Time, end time.Time) ([]model.UserAvailability, error) {
 	ctx := context.Background()
 	query := `
-		SELECT ua.id, ua.user_id, ua.company_id, ua.start_time, ua.end_time, ua.note, ua.created_at, ua.updated_at
+		SELECT ua.id, ua.user_id, u.avatar_url, ua.company_id, ua.start_time, ua.end_time, ua.note, ua.created_at, ua.updated_at
 		FROM user_availability ua
 		JOIN company_members cm ON cm.company_id = ua.company_id AND cm.user_id = ua.user_id
+		JOIN users u ON u.id = ua.user_id
 		WHERE ua.company_id = $1
 		  AND ua.start_time < $3
 		  AND ua.end_time > $2
@@ -205,6 +210,7 @@ func (r *AvailabilityPostgres) ListAvailabilityInRange(companyID int64, start ti
 		if err := rows.Scan(
 			&item.ID,
 			&item.UserID,
+			&item.AvatarURL,
 			&item.CompanyID,
 			&item.StartTime,
 			&item.EndTime,

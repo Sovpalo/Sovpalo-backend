@@ -44,9 +44,10 @@ type CompanyMember struct {
 }
 
 type CompanyMemberView struct {
-	UserID   int64  `db:"user_id" json:"user_id"`
-	Username string `db:"username" json:"username"`
-	Role     string `db:"role" json:"role"`
+	UserID    int64   `db:"user_id" json:"user_id"`
+	Username  string  `db:"username" json:"username"`
+	AvatarURL *string `db:"avatar_url" json:"avatar_url,omitempty"`
+	Role      string  `db:"role" json:"role"`
 }
 
 type CompanyInvitation struct {
@@ -60,13 +61,14 @@ type CompanyInvitation struct {
 }
 
 type CompanyInvitationView struct {
-	ID                int64     `db:"id" json:"id"`
-	CompanyID         int64     `db:"company_id" json:"company_id"`
-	CompanyName       string    `db:"company_name" json:"company_name"`
-	InvitedBy         int64     `db:"invited_by" json:"invited_by"`
-	InvitedByUsername string    `db:"invited_by_username" json:"invited_by_username"`
-	Status            string    `db:"status" json:"status"`
-	CreatedAt         time.Time `db:"created_at" json:"created_at"`
+	ID                 int64     `db:"id" json:"id"`
+	CompanyID          int64     `db:"company_id" json:"company_id"`
+	CompanyName        string    `db:"company_name" json:"company_name"`
+	InvitedBy          int64     `db:"invited_by" json:"invited_by"`
+	InvitedByUsername  string    `db:"invited_by_username" json:"invited_by_username"`
+	InvitedByAvatarURL *string   `db:"invited_by_avatar_url" json:"invited_by_avatar_url,omitempty"`
+	Status             string    `db:"status" json:"status"`
+	CreatedAt          time.Time `db:"created_at" json:"created_at"`
 }
 
 type CompanyUpdateInput struct {
@@ -102,9 +104,10 @@ type EventParticipant struct {
 }
 
 type EventAttendanceView struct {
-	UserID   int64  `db:"user_id" json:"user_id"`
-	Username string `db:"username" json:"username"`
-	Status   string `db:"status" json:"status"`
+	UserID    int64   `db:"user_id" json:"user_id"`
+	Username  string  `db:"username" json:"username"`
+	AvatarURL *string `db:"avatar_url" json:"avatar_url,omitempty"`
+	Status    string  `db:"status" json:"status"`
 }
 
 type Idea struct {
@@ -122,20 +125,22 @@ type Idea struct {
 }
 
 type IdeaView struct {
-	ID                int64   `db:"id" json:"id"`
-	Title             string  `db:"title" json:"title"`
-	Description       *string `db:"description" json:"description,omitempty"`
-	PhotoURL          *string `db:"photo_url" json:"photo_url,omitempty"`
-	CompanyID         int64   `db:"company_id" json:"company_id"`
-	CreatedBy         int64   `db:"created_by" json:"created_by"`
-	CreatedByUsername string  `db:"created_by_username" json:"created_by_username"`
-	LikesCount        int64   `db:"likes_count" json:"likes_count"`
-	LikedByCurrent    bool    `db:"liked_by_current" json:"liked_by_current"`
+	ID                 int64   `db:"id" json:"id"`
+	Title              string  `db:"title" json:"title"`
+	Description        *string `db:"description" json:"description,omitempty"`
+	PhotoURL           *string `db:"photo_url" json:"photo_url,omitempty"`
+	CompanyID          int64   `db:"company_id" json:"company_id"`
+	CreatedBy          int64   `db:"created_by" json:"created_by"`
+	CreatedByUsername  string  `db:"created_by_username" json:"created_by_username"`
+	CreatedByAvatarURL *string `db:"created_by_avatar_url" json:"created_by_avatar_url,omitempty"`
+	LikesCount         int64   `db:"likes_count" json:"likes_count"`
+	LikedByCurrent     bool    `db:"liked_by_current" json:"liked_by_current"`
 }
 
 type UserAvailability struct {
 	ID        int64     `db:"id" json:"id"`
 	UserID    int64     `db:"user_id" json:"user_id"`
+	AvatarURL *string   `db:"avatar_url" json:"avatar_url,omitempty"`
 	CompanyID *int64    `db:"company_id" json:"company_id,omitempty"`
 	StartTime time.Time `db:"start_time" json:"start_time"`
 	EndTime   time.Time `db:"end_time" json:"end_time"`

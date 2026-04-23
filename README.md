@@ -79,6 +79,7 @@ go run ./cmd/migrate status
 - `PATCH /events/:id` и `PATCH /companies/:id/events/:event_id` — обновление встречи. Поддерживают `photo_url`.
 - `POST /companies/:id/ideas` — создание идеи. Поддерживает опциональный `photo_url`.
 - `PATCH /companies/:id/ideas/:idea_id` — обновление идеи её автором. Можно менять `title`, `description`, `photo_url`.
+- Ответы со списками участников, приглашений, посещаемости, идей и доступности включают `avatar_url` пользователя там, где возвращаются данные пользователя.
 
 ### Пример регистрации
 

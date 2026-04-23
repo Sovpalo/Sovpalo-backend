@@ -58,6 +58,7 @@ func (r *IdeaPostgres) ListCompanyIdeas(companyID int64, userID int64) ([]model.
 		       i.company_id,
 		       i.created_by,
 		       u.username,
+		       u.avatar_url,
 		       COALESCE(lc.likes_count, 0) AS likes_count,
 		       EXISTS (
 		           SELECT 1 FROM idea_likes il
@@ -90,6 +91,7 @@ func (r *IdeaPostgres) ListCompanyIdeas(companyID int64, userID int64) ([]model.
 			&idea.CompanyID,
 			&idea.CreatedBy,
 			&idea.CreatedByUsername,
+			&idea.CreatedByAvatarURL,
 			&idea.LikesCount,
 			&idea.LikedByCurrent,
 		); err != nil {
@@ -122,6 +124,7 @@ func (r *IdeaPostgres) GetCompanyIdea(companyID int64, userID int64, ideaID int6
 		       i.company_id,
 		       i.created_by,
 		       u.username,
+		       u.avatar_url,
 		       COALESCE(lc.likes_count, 0) AS likes_count,
 		       EXISTS (
 		           SELECT 1 FROM idea_likes il
@@ -145,6 +148,7 @@ func (r *IdeaPostgres) GetCompanyIdea(companyID int64, userID int64, ideaID int6
 		&idea.CompanyID,
 		&idea.CreatedBy,
 		&idea.CreatedByUsername,
+		&idea.CreatedByAvatarURL,
 		&idea.LikesCount,
 		&idea.LikedByCurrent,
 	)

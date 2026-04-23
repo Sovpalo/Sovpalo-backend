@@ -323,6 +323,7 @@ func (r *EventPostgres) ListCompanyEventAttendance(companyID int64, eventID int6
 	query := `
 		SELECT cm.user_id,
 		       u.username,
+		       u.avatar_url,
 		       COALESCE(ep.status, 'unknown') AS status
 		FROM company_members cm
 		JOIN users u ON u.id = cm.user_id
@@ -340,7 +341,7 @@ func (r *EventPostgres) ListCompanyEventAttendance(companyID int64, eventID int6
 	var attendance []model.EventAttendanceView
 	for rows.Next() {
 		var item model.EventAttendanceView
-		if err := rows.Scan(&item.UserID, &item.Username, &item.Status); err != nil {
+		if err := rows.Scan(&item.UserID, &item.Username, &item.AvatarURL, &item.Status); err != nil {
 			return nil, err
 		}
 		attendance = append(attendance, item)

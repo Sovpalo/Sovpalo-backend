@@ -336,6 +336,7 @@ func (r *CompanyPostgres) ListInvitations(userID int64) ([]model.CompanyInvitati
 		       c.name AS company_name,
 		       ci.invited_by,
 		       u.username AS invited_by_username,
+		       u.avatar_url AS invited_by_avatar_url,
 		       ci.status,
 		       ci.created_at
 		FROM company_invitations ci
@@ -359,6 +360,7 @@ func (r *CompanyPostgres) ListInvitations(userID int64) ([]model.CompanyInvitati
 			&invite.CompanyName,
 			&invite.InvitedBy,
 			&invite.InvitedByUsername,
+			&invite.InvitedByAvatarURL,
 			&invite.Status,
 			&invite.CreatedAt,
 		); err != nil {
@@ -451,7 +453,7 @@ func (r *CompanyPostgres) ListCompanyMembers(companyID int64, userID int64) ([]m
 	}
 
 	query := `
-		SELECT cm.user_id, u.username, cm.role
+		SELECT cm.user_id, u.username, u.avatar_url, cm.role
 		FROM company_members cm
 		JOIN users u ON u.id = cm.user_id
 		WHERE cm.company_id = $1
@@ -466,7 +468,7 @@ func (r *CompanyPostgres) ListCompanyMembers(companyID int64, userID int64) ([]m
 	var members []model.CompanyMemberView
 	for rows.Next() {
 		var member model.CompanyMemberView
-		if err := rows.Scan(&member.UserID, &member.Username, &member.Role); err != nil {
+		if err := rows.Scan(&member.UserID, &member.Username, &member.AvatarURL, &member.Role); err != nil {
 			return nil, err
 		}
 		members = append(members, member)
