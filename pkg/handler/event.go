@@ -22,48 +22,103 @@ type eventInput struct {
 }
 
 func (h *Handler) createEvent(c *gin.Context) {
-	var input eventInput
-	if err := c.BindJSON(&input); err != nil {
-		newErrorResponse(c, http.StatusBadRequest, "invalid input body")
-		return
-	}
-
 	userID, err := getUserId(c)
 	if err != nil {
 		newErrorResponse(c, http.StatusUnauthorized, err.Error())
 		return
 	}
 
-	startTime, err := time.Parse(time.RFC3339, input.StartTime)
+	createInput, photoFileName, photoFileData, err := parseEventCreateInput(c)
 	if err != nil {
-		newErrorResponse(c, http.StatusBadRequest, "invalid start_time")
+		newErrorResponse(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	var endTime *time.Time
-	if input.EndTime != nil && *input.EndTime != "" {
-		parsedEnd, err := time.Parse(time.RFC3339, *input.EndTime)
-		if err != nil {
-			newErrorResponse(c, http.StatusBadRequest, "invalid end_time")
-			return
-		}
-		endTime = &parsedEnd
-	}
-
-	eventID, err := h.services.Event.CreateEvent(int64(userID), model.EventCreateInput{
-		Title:       input.Title,
-		Description: input.Description,
-		PhotoURL:    input.PhotoURL,
-		StartTime:   &startTime,
-		EndTime:     endTime,
-		CompanyID:   input.CompanyID,
-	})
+	eventID, err := h.services.Event.CreateEvent(int64(userID), createInput, photoFileName, photoFileData)
 	if err != nil {
 		newErrorResponse(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{"id": eventID})
+}
+
+func parseEventCreateInput(c *gin.Context) (model.EventCreateInput, string, []byte, error) {
+	contentType := c.GetHeader("Content-Type")
+	if !strings.HasPrefix(contentType, "multipart/form-data") {
+		var input eventInput
+		if err := c.BindJSON(&input); err != nil {
+			return model.EventCreateInput{}, "", nil, errors.New("invalid input body")
+		}
+		createInput, err := buildEventCreateInput(input)
+		return createInput, "", nil, err
+	}
+
+	if err := c.Request.ParseMultipartForm(maxAvatarUploadSize + 1024); err != nil {
+		return model.EventCreateInput{}, "", nil, errors.New("invalid multipart form")
+	}
+
+	input := eventInput{
+		Title:     c.PostForm("title"),
+		StartTime: c.PostForm("start_time"),
+	}
+	if _, ok := c.Request.MultipartForm.Value["description"]; ok {
+		value := c.PostForm("description")
+		input.Description = &value
+	}
+	if _, ok := c.Request.MultipartForm.Value["photo_url"]; ok {
+		value := c.PostForm("photo_url")
+		input.PhotoURL = &value
+	}
+	if _, ok := c.Request.MultipartForm.Value["company_id"]; ok {
+		value := c.PostForm("company_id")
+		companyID, err := strconv.ParseInt(value, 10, 64)
+		if err != nil {
+			return model.EventCreateInput{}, "", nil, errors.New("invalid company_id")
+		}
+		input.CompanyID = &companyID
+	}
+	if _, ok := c.Request.MultipartForm.Value["end_time"]; ok {
+		value := c.PostForm("end_time")
+		input.EndTime = &value
+	}
+
+	createInput, err := buildEventCreateInput(input)
+	if err != nil {
+		return model.EventCreateInput{}, "", nil, err
+	}
+
+	fileName, fileData, err := readMultipartImage(c, "photo")
+	if err != nil {
+		return model.EventCreateInput{}, "", nil, err
+	}
+
+	return createInput, fileName, fileData, nil
+}
+
+func buildEventCreateInput(input eventInput) (model.EventCreateInput, error) {
+	startTime, err := time.Parse(time.RFC3339, input.StartTime)
+	if err != nil {
+		return model.EventCreateInput{}, errors.New("invalid start_time")
+	}
+
+	var endTime *time.Time
+	if input.EndTime != nil && *input.EndTime != "" {
+		parsedEnd, err := time.Parse(time.RFC3339, *input.EndTime)
+		if err != nil {
+			return model.EventCreateInput{}, errors.New("invalid end_time")
+		}
+		endTime = &parsedEnd
+	}
+
+	return model.EventCreateInput{
+		Title:       input.Title,
+		Description: input.Description,
+		PhotoURL:    input.PhotoURL,
+		StartTime:   &startTime,
+		EndTime:     endTime,
+		CompanyID:   input.CompanyID,
+	}, nil
 }
 
 func (h *Handler) listEvents(c *gin.Context) {
@@ -296,41 +351,19 @@ func (h *Handler) createCompanyEvent(c *gin.Context) {
 		return
 	}
 
-	var input eventInput
-	if err := c.BindJSON(&input); err != nil {
-		newErrorResponse(c, http.StatusBadRequest, "invalid input body")
+	createInput, photoFileName, photoFileData, err := parseEventCreateInput(c)
+	if err != nil {
+		newErrorResponse(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	if input.CompanyID != nil && *input.CompanyID != companyID {
+	if createInput.CompanyID != nil && *createInput.CompanyID != companyID {
 		newErrorResponse(c, http.StatusBadRequest, "company_id mismatch")
 		return
 	}
+	createInput.CompanyID = &companyID
 
-	startTime, err := time.Parse(time.RFC3339, input.StartTime)
-	if err != nil {
-		newErrorResponse(c, http.StatusBadRequest, "invalid start_time")
-		return
-	}
-
-	var endTime *time.Time
-	if input.EndTime != nil && *input.EndTime != "" {
-		parsedEnd, err := time.Parse(time.RFC3339, *input.EndTime)
-		if err != nil {
-			newErrorResponse(c, http.StatusBadRequest, "invalid end_time")
-			return
-		}
-		endTime = &parsedEnd
-	}
-
-	eventID, err := h.services.Event.CreateEvent(int64(userID), model.EventCreateInput{
-		Title:       input.Title,
-		Description: input.Description,
-		PhotoURL:    input.PhotoURL,
-		StartTime:   &startTime,
-		EndTime:     endTime,
-		CompanyID:   &companyID,
-	})
+	eventID, err := h.services.Event.CreateEvent(int64(userID), createInput, photoFileName, photoFileData)
 	if err != nil {
 		newErrorResponse(c, http.StatusBadRequest, err.Error())
 		return

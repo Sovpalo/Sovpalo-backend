@@ -15,13 +15,24 @@ func NewEventService(repo repository.Event) *EventService {
 	return &EventService{repo: repo}
 }
 
-func (s *EventService) CreateEvent(userID int64, input model.EventCreateInput) (int64, error) {
+func (s *EventService) CreateEvent(userID int64, input model.EventCreateInput, photoFileName string, photoFileData []byte) (int64, error) {
 	if input.Title == "" {
 		return 0, errors.New("title is required")
 	}
 	if input.StartTime == nil {
 		return 0, errors.New("start_time is required")
 	}
+
+	var newPhotoURL string
+	if len(photoFileData) > 0 {
+		var err error
+		newPhotoURL, err = saveEntityAvatarFile("event", userID, photoFileName, photoFileData)
+		if err != nil {
+			return 0, err
+		}
+		input.PhotoURL = &newPhotoURL
+	}
+
 	event := model.Event{
 		CompanyID:   input.CompanyID,
 		CreatedBy:   userID,
@@ -31,7 +42,14 @@ func (s *EventService) CreateEvent(userID int64, input model.EventCreateInput) (
 		StartTime:   input.StartTime,
 		EndTime:     input.EndTime,
 	}
-	return s.repo.CreateEvent(event)
+	id, err := s.repo.CreateEvent(event)
+	if err != nil {
+		if newPhotoURL != "" {
+			_ = removeAvatarByURL(newPhotoURL)
+		}
+		return 0, err
+	}
+	return id, nil
 }
 
 func (s *EventService) GetEvent(eventID int64, userID int64) (model.Event, error) {

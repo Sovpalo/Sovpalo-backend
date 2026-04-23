@@ -75,9 +75,9 @@ go run ./cmd/migrate status
 - `POST /companies/:id/leave` — выход из компании. Обычный участник выходит без тела запроса. Владелец обязан передать `new_owner_id`, чтобы сначала назначить нового владельца.
 - `POST /companies` — создание компании. Принимает `name`, опционально `description` и `avatar_url`.
 - `PATCH /companies/:id` — обновление компании владельцем. Поддерживает `application/json` с `name`, `description`, `avatar_url` и `multipart/form-data` с полями `name`, `description`, `avatar_url`, `avatar`. Файл `avatar` сохраняется на сервере, а в `avatar_url` записывается URL.
-- `POST /events` и `POST /companies/:id/events` — создание встречи. Поддерживают опциональный `photo_url`.
+- `POST /events` и `POST /companies/:id/events` — создание встречи. Поддерживают `application/json` с `photo_url` и `multipart/form-data` с полями `title`, `description`, `photo_url`, `start_time`, `end_time`, `company_id`, `photo`. Файл `photo` сохраняется на сервере, а в `photo_url` записывается URL.
 - `PATCH /events/:id` и `PATCH /companies/:id/events/:event_id` — обновление встречи. Поддерживают `application/json` с `photo_url` и `multipart/form-data` с полями `title`, `description`, `photo_url`, `start_time`, `end_time`, `photo`. Файл `photo` сохраняется на сервере, а в `photo_url` записывается URL.
-- `POST /companies/:id/ideas` — создание идеи. Поддерживает опциональный `photo_url`.
+- `POST /companies/:id/ideas` — создание идеи. Поддерживает `application/json` с `photo_url` и `multipart/form-data` с полями `title`, `description`, `photo_url`, `photo`. Файл `photo` сохраняется на сервере, а в `photo_url` записывается URL.
 - `PATCH /companies/:id/ideas/:idea_id` — обновление идеи её автором. Поддерживает `application/json` с `title`, `description`, `photo_url` и `multipart/form-data` с полями `title`, `description`, `photo_url`, `photo`. Файл `photo` сохраняется на сервере, а в `photo_url` записывается URL.
 - Ответы со списками участников, приглашений, посещаемости, идей и доступности включают `avatar_url` пользователя там, где возвращаются данные пользователя.
 

@@ -24,19 +24,53 @@ func (h *Handler) createCompanyIdea(c *gin.Context) {
 		return
 	}
 
-	var input model.IdeaCreateInput
-	if err := c.BindJSON(&input); err != nil {
-		newErrorResponse(c, http.StatusBadRequest, "invalid input body")
+	input, photoFileName, photoFileData, err := parseIdeaCreateInput(c)
+	if err != nil {
+		newErrorResponse(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	id, err := h.services.Idea.CreateCompanyIdea(companyID, int64(userID), input)
+	id, err := h.services.Idea.CreateCompanyIdea(companyID, int64(userID), input, photoFileName, photoFileData)
 	if err != nil {
 		newErrorResponse(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{"id": id})
+}
+
+func parseIdeaCreateInput(c *gin.Context) (model.IdeaCreateInput, string, []byte, error) {
+	contentType := c.GetHeader("Content-Type")
+	if !strings.HasPrefix(contentType, "multipart/form-data") {
+		var input model.IdeaCreateInput
+		if err := c.BindJSON(&input); err != nil {
+			return model.IdeaCreateInput{}, "", nil, errors.New("invalid input body")
+		}
+		return input, "", nil, nil
+	}
+
+	if err := c.Request.ParseMultipartForm(maxAvatarUploadSize + 1024); err != nil {
+		return model.IdeaCreateInput{}, "", nil, errors.New("invalid multipart form")
+	}
+
+	input := model.IdeaCreateInput{
+		Title: c.PostForm("title"),
+	}
+	if _, ok := c.Request.MultipartForm.Value["description"]; ok {
+		value := c.PostForm("description")
+		input.Description = &value
+	}
+	if _, ok := c.Request.MultipartForm.Value["photo_url"]; ok {
+		value := c.PostForm("photo_url")
+		input.PhotoURL = &value
+	}
+
+	fileName, fileData, err := readMultipartImage(c, "photo")
+	if err != nil {
+		return model.IdeaCreateInput{}, "", nil, err
+	}
+
+	return input, fileName, fileData, nil
 }
 
 func (h *Handler) listCompanyIdeas(c *gin.Context) {

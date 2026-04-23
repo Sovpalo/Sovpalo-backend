@@ -64,7 +64,7 @@ type Company interface {
 }
 
 type Event interface {
-	CreateEvent(userID int64, input model.EventCreateInput) (int64, error)
+	CreateEvent(userID int64, input model.EventCreateInput, photoFileName string, photoFileData []byte) (int64, error)
 	GetEvent(eventID int64, userID int64) (model.Event, error)
 	ListEvents(userID int64) ([]model.Event, error)
 	ListCompanyEvents(companyID int64, userID int64) ([]model.Event, error)
@@ -84,7 +84,7 @@ type Availability interface {
 }
 
 type Idea interface {
-	CreateCompanyIdea(companyID int64, userID int64, input model.IdeaCreateInput) (int64, error)
+	CreateCompanyIdea(companyID int64, userID int64, input model.IdeaCreateInput, photoFileName string, photoFileData []byte) (int64, error)
 	ListCompanyIdeas(companyID int64, userID int64) ([]model.IdeaView, error)
 	GetCompanyIdea(companyID int64, userID int64, ideaID int64) (model.IdeaView, error)
 	UpdateCompanyIdea(companyID int64, userID int64, ideaID int64, input model.IdeaUpdateInput, photoFileName string, photoFileData []byte) error

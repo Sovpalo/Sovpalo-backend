@@ -15,11 +15,29 @@ func NewIdeaService(repo repository.Idea) *IdeaService {
 	return &IdeaService{repo: repo}
 }
 
-func (s *IdeaService) CreateCompanyIdea(companyID int64, userID int64, input model.IdeaCreateInput) (int64, error) {
+func (s *IdeaService) CreateCompanyIdea(companyID int64, userID int64, input model.IdeaCreateInput, photoFileName string, photoFileData []byte) (int64, error) {
 	if input.Title == "" {
 		return 0, errors.New("title is required")
 	}
-	return s.repo.CreateCompanyIdea(companyID, userID, input)
+
+	var newPhotoURL string
+	if len(photoFileData) > 0 {
+		var err error
+		newPhotoURL, err = saveEntityAvatarFile("idea", userID, photoFileName, photoFileData)
+		if err != nil {
+			return 0, err
+		}
+		input.PhotoURL = &newPhotoURL
+	}
+
+	id, err := s.repo.CreateCompanyIdea(companyID, userID, input)
+	if err != nil {
+		if newPhotoURL != "" {
+			_ = removeAvatarByURL(newPhotoURL)
+		}
+		return 0, err
+	}
+	return id, nil
 }
 
 func (s *IdeaService) ListCompanyIdeas(companyID int64, userID int64) ([]model.IdeaView, error) {
