@@ -172,6 +172,10 @@ func (s *AuthService) DeleteUser(userID int64) error {
 }
 
 func saveAvatarFile(userID int64, fileName string, fileData []byte) (string, error) {
+	return saveEntityAvatarFile("user", userID, fileName, fileData)
+}
+
+func saveEntityAvatarFile(entity string, entityID int64, fileName string, fileData []byte) (string, error) {
 	if len(fileData) == 0 {
 		return "", ErrAvatarInvalidType
 	}
@@ -200,7 +204,7 @@ func saveAvatarFile(userID int64, fileName string, fileData []byte) (string, err
 		safeName = "avatar"
 	}
 
-	fileBase := fmt.Sprintf("user-%d-%d-%s-%s%s", userID, time.Now().Unix(), safeName, randomPart, ext)
+	fileBase := fmt.Sprintf("%s-%d-%d-%s-%s%s", entity, entityID, time.Now().Unix(), safeName, randomPart, ext)
 	fullPath := filepath.Join(uploadDir, fileBase)
 	if err := os.WriteFile(fullPath, fileData, 0o644); err != nil {
 		return "", err

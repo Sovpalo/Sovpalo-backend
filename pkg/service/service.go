@@ -51,7 +51,7 @@ type Company interface {
 	CreateCompany(userID int64, name string, description *string, avatarURL *string) (int64, error)
 	GetCompany(companyID int64, userID int64) (model.Company, error)
 	ListCompanies(userID int64) ([]model.Company, error)
-	UpdateCompany(companyID int64, userID int64, input model.CompanyUpdateInput) error
+	UpdateCompany(companyID int64, userID int64, input model.CompanyUpdateInput, avatarFileName string, avatarFileData []byte) error
 	DeleteCompany(companyID int64, userID int64) error
 	LeaveCompany(companyID int64, userID int64, newOwnerID *int64) error
 

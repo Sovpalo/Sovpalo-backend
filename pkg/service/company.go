@@ -36,8 +36,33 @@ func (s *CompanyService) ListCompanies(userID int64) ([]model.Company, error) {
 	return s.repo.ListCompanies(userID)
 }
 
-func (s *CompanyService) UpdateCompany(companyID int64, userID int64, input model.CompanyUpdateInput) error {
-	return s.repo.UpdateCompany(companyID, userID, input)
+func (s *CompanyService) UpdateCompany(companyID int64, userID int64, input model.CompanyUpdateInput, avatarFileName string, avatarFileData []byte) error {
+	company, err := s.repo.GetCompany(companyID, userID)
+	if err != nil {
+		return err
+	}
+
+	var newAvatarURL string
+	if len(avatarFileData) > 0 {
+		newAvatarURL, err = saveEntityAvatarFile("company", companyID, avatarFileName, avatarFileData)
+		if err != nil {
+			return err
+		}
+		input.AvatarURL = &newAvatarURL
+	}
+
+	if err := s.repo.UpdateCompany(companyID, userID, input); err != nil {
+		if newAvatarURL != "" {
+			_ = removeAvatarByURL(newAvatarURL)
+		}
+		return err
+	}
+
+	if newAvatarURL != "" && company.AvatarURL != nil && *company.AvatarURL != newAvatarURL {
+		_ = removeAvatarByURL(*company.AvatarURL)
+	}
+
+	return nil
 }
 
 func (s *CompanyService) DeleteCompany(companyID int64, userID int64) error {

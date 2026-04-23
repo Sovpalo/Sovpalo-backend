@@ -1,10 +1,14 @@
 package handler
 
 import (
+	"errors"
+	"io"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/Sovpalo/sovpalo-backend/pkg/model"
+	"github.com/Sovpalo/sovpalo-backend/pkg/service"
 	"github.com/gin-gonic/gin"
 )
 
@@ -85,18 +89,78 @@ func (h *Handler) updateCompany(c *gin.Context) {
 		return
 	}
 
-	var input model.CompanyUpdateInput
-	if err := c.BindJSON(&input); err != nil {
-		newErrorResponse(c, http.StatusBadRequest, "invalid input body")
-		return
-	}
-
-	if err := h.services.Company.UpdateCompany(companyID, int64(userID), input); err != nil {
+	input, avatarFileName, avatarFileData, err := parseCompanyUpdateInput(c)
+	if err != nil {
 		newErrorResponse(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
+	if err := h.services.Company.UpdateCompany(companyID, int64(userID), input, avatarFileName, avatarFileData); err != nil {
+		switch {
+		case errors.Is(err, service.ErrAvatarTooLarge), errors.Is(err, service.ErrAvatarInvalidType):
+			newErrorResponse(c, http.StatusBadRequest, err.Error())
+		default:
+			newErrorResponse(c, http.StatusBadRequest, err.Error())
+		}
+		return
+	}
 	c.JSON(http.StatusOK, statusResponse{Status: "ok"})
+}
+
+func parseCompanyUpdateInput(c *gin.Context) (model.CompanyUpdateInput, string, []byte, error) {
+	contentType := c.GetHeader("Content-Type")
+	if !strings.HasPrefix(contentType, "multipart/form-data") {
+		var input model.CompanyUpdateInput
+		if err := c.BindJSON(&input); err != nil {
+			return model.CompanyUpdateInput{}, "", nil, errors.New("invalid input body")
+		}
+		return input, "", nil, nil
+	}
+
+	if err := c.Request.ParseMultipartForm(maxAvatarUploadSize + 1024); err != nil {
+		return model.CompanyUpdateInput{}, "", nil, errors.New("invalid multipart form")
+	}
+
+	input := model.CompanyUpdateInput{}
+	if _, ok := c.Request.MultipartForm.Value["name"]; ok {
+		value := c.PostForm("name")
+		input.Name = &value
+	}
+	if _, ok := c.Request.MultipartForm.Value["description"]; ok {
+		value := c.PostForm("description")
+		input.Description = &value
+	}
+	if _, ok := c.Request.MultipartForm.Value["avatar_url"]; ok {
+		value := c.PostForm("avatar_url")
+		input.AvatarURL = &value
+	}
+
+	fileHeader, err := c.FormFile("avatar")
+	if err != nil {
+		if errors.Is(err, http.ErrMissingFile) {
+			return input, "", nil, nil
+		}
+		return model.CompanyUpdateInput{}, "", nil, errors.New("failed to read avatar file")
+	}
+	if fileHeader.Size > maxAvatarUploadSize {
+		return model.CompanyUpdateInput{}, "", nil, service.ErrAvatarTooLarge
+	}
+
+	file, err := fileHeader.Open()
+	if err != nil {
+		return model.CompanyUpdateInput{}, "", nil, errors.New("failed to open avatar file")
+	}
+	defer file.Close()
+
+	fileData, err := io.ReadAll(io.LimitReader(file, maxAvatarUploadSize+1))
+	if err != nil {
+		return model.CompanyUpdateInput{}, "", nil, errors.New("failed to read avatar file")
+	}
+	if len(fileData) > maxAvatarUploadSize {
+		return model.CompanyUpdateInput{}, "", nil, service.ErrAvatarTooLarge
+	}
+
+	return input, fileHeader.Filename, fileData, nil
 }
 
 func (h *Handler) deleteCompany(c *gin.Context) {
