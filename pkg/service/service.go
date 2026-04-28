@@ -24,7 +24,7 @@ func NewService(repos *repository.Repository, cfg config.Config) *Service {
 	return &Service{
 		Authorization: NewAuthService(repos.Authorization),
 		Company:       NewCompanyService(repos.Company),
-		Event:         NewEventService(repos.Event),
+		Event:         NewEventService(repos.Event, repos.Availability),
 		Availability:  NewAvailabilityService(repos.Availability),
 		Idea:          NewIdeaService(repos.Idea, repos.Company, ideaGenerator),
 		Chat:          NewChatService(repos.Chat),
@@ -74,6 +74,7 @@ type Event interface {
 	GetEvent(eventID int64, userID int64) (model.Event, error)
 	ListEvents(userID int64) ([]model.Event, error)
 	ListCompanyEvents(companyID int64, userID int64) ([]model.Event, error)
+	GetCompanyEventFeatures(companyID int64, eventID int64, userID int64, now time.Time) (model.EventFeatures, error)
 	UpdateEvent(eventID int64, userID int64, input model.EventUpdateInput, photoFileName string, photoFileData []byte) error
 	DeleteEvent(eventID int64, userID int64) error
 	SetCompanyEventAttendance(companyID int64, eventID int64, userID int64, status string) error

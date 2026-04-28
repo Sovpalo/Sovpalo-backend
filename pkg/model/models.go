@@ -110,6 +110,23 @@ type EventAttendanceView struct {
 	Status    string  `db:"status" json:"status"`
 }
 
+type EventFeatures struct {
+	Hour                  int     `json:"hour"`
+	DayOfWeek             int     `json:"day_of_week"`
+	IsWeekend             bool    `json:"is_weekend"`
+	ParticipantsCount     int     `json:"participants_count"`
+	FreeParticipantsCount int     `json:"free_participants_count"`
+	FreeRatio             float64 `json:"free_ratio"`
+	ConfirmedCount        int     `json:"confirmed_count"`
+	DeclinedCount         int     `json:"declined_count"`
+	PendingCount          int     `json:"pending_count"`
+	DurationMinutes       int64   `json:"duration_minutes"`
+	DaysUntilMeeting      int     `json:"days_until_meeting"`
+	HasTitle              bool    `json:"has_title"`
+	TitleLength           int     `json:"title_length"`
+	HasAddress            bool    `json:"has_address"`
+}
+
 type Idea struct {
 	ID          int64     `db:"id" json:"id"`
 	CompanyID   *int64    `db:"company_id" json:"company_id,omitempty"`

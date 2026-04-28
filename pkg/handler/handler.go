@@ -118,6 +118,8 @@ func (h *Handler) InitRoutes() *gin.Engine {
 		companyEvents.GET("/:event_id/attendance", h.listCompanyEventAttendance)
 		// GET /companies/:id/events/:event_id/attendance/summary - attendance summary
 		companyEvents.GET("/:event_id/attendance/summary", h.listCompanyEventAttendanceSummary)
+		// GET /companies/:id/events/:event_id/features - calculated meeting features
+		companyEvents.GET("/:event_id/features", h.getCompanyEventFeatures)
 	}
 
 	companyIdeas := router.Group("/companies/:id/ideas", h.userIdentity)

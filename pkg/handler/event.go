@@ -611,3 +611,35 @@ func (h *Handler) listCompanyEventAttendanceSummary(c *gin.Context) {
 		"current_user_status": currentStatus,
 	})
 }
+
+func (h *Handler) getCompanyEventFeatures(c *gin.Context) {
+	userID, err := getUserId(c)
+	if err != nil {
+		newErrorResponse(c, http.StatusUnauthorized, err.Error())
+		return
+	}
+
+	companyID, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		newErrorResponse(c, http.StatusBadRequest, "invalid company id")
+		return
+	}
+
+	eventID, err := strconv.ParseInt(c.Param("event_id"), 10, 64)
+	if err != nil {
+		newErrorResponse(c, http.StatusBadRequest, "invalid event id")
+		return
+	}
+
+	features, err := h.services.Event.GetCompanyEventFeatures(companyID, eventID, int64(userID), time.Now())
+	if err != nil {
+		if err.Error() == "event not found" {
+			newErrorResponse(c, http.StatusNotFound, err.Error())
+			return
+		}
+		newErrorResponse(c, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, features)
+}

@@ -2,17 +2,24 @@ package service
 
 import (
 	"errors"
+	"strings"
+	"time"
+	"unicode/utf8"
 
 	"github.com/Sovpalo/sovpalo-backend/pkg/model"
 	"github.com/Sovpalo/sovpalo-backend/pkg/repository"
 )
 
 type EventService struct {
-	repo repository.Event
+	repo             repository.Event
+	availabilityRepo repository.Availability
 }
 
-func NewEventService(repo repository.Event) *EventService {
-	return &EventService{repo: repo}
+func NewEventService(repo repository.Event, availabilityRepo repository.Availability) *EventService {
+	return &EventService{
+		repo:             repo,
+		availabilityRepo: availabilityRepo,
+	}
 }
 
 func (s *EventService) CreateEvent(userID int64, input model.EventCreateInput, photoFileName string, photoFileData []byte) (int64, error) {
@@ -62,6 +69,78 @@ func (s *EventService) ListEvents(userID int64) ([]model.Event, error) {
 
 func (s *EventService) ListCompanyEvents(companyID int64, userID int64) ([]model.Event, error) {
 	return s.repo.ListCompanyEvents(companyID, userID)
+}
+
+func (s *EventService) GetCompanyEventFeatures(companyID int64, eventID int64, userID int64, now time.Time) (model.EventFeatures, error) {
+	event, err := s.repo.GetEvent(eventID, userID)
+	if err != nil {
+		return model.EventFeatures{}, err
+	}
+	if event.CompanyID == nil || *event.CompanyID != companyID {
+		return model.EventFeatures{}, errors.New("event not found")
+	}
+
+	attendance, err := s.repo.ListCompanyEventAttendance(companyID, eventID, userID)
+	if err != nil {
+		return model.EventFeatures{}, err
+	}
+
+	features := model.EventFeatures{
+		ParticipantsCount: len(attendance),
+		HasTitle:          strings.TrimSpace(event.Title) != "",
+		TitleLength:       utf8.RuneCountInString(event.Title),
+		HasAddress:        hasEventAddress(event),
+	}
+
+	if event.StartTime != nil {
+		features.Hour = event.StartTime.Hour()
+		features.DayOfWeek = normalizeWeekday(event.StartTime.Weekday())
+		features.IsWeekend = event.StartTime.Weekday() == time.Saturday || event.StartTime.Weekday() == time.Sunday
+		features.DaysUntilMeeting = int(event.StartTime.Sub(now).Hours() / 24)
+	}
+	if event.StartTime != nil && event.EndTime != nil && event.EndTime.After(*event.StartTime) {
+		features.DurationMinutes = int64(event.EndTime.Sub(*event.StartTime) / time.Minute)
+	}
+
+	freeByUser := map[int64]bool{}
+	if event.CompanyID != nil && event.StartTime != nil && s.availabilityRepo != nil {
+		rangeEnd := *event.StartTime
+		if event.EndTime != nil && event.EndTime.After(*event.StartTime) {
+			rangeEnd = *event.EndTime
+		}
+
+		availabilities, err := s.availabilityRepo.ListAvailabilityInRange(companyID, *event.StartTime, rangeEnd)
+		if err != nil {
+			return model.EventFeatures{}, err
+		}
+
+		for _, item := range availabilities {
+			if availabilityCoversEvent(item, *event.StartTime, event.EndTime) {
+				freeByUser[item.UserID] = true
+			}
+		}
+	}
+
+	for _, item := range attendance {
+		if freeByUser[item.UserID] {
+			features.FreeParticipantsCount++
+		}
+
+		switch item.Status {
+		case "going":
+			features.ConfirmedCount++
+		case "not_going":
+			features.DeclinedCount++
+		default:
+			features.PendingCount++
+		}
+	}
+
+	if features.ParticipantsCount > 0 {
+		features.FreeRatio = float64(features.FreeParticipantsCount) / float64(features.ParticipantsCount)
+	}
+
+	return features, nil
 }
 
 func (s *EventService) UpdateEvent(eventID int64, userID int64, input model.EventUpdateInput, photoFileName string, photoFileData []byte) error {
@@ -118,4 +197,26 @@ func (s *EventService) SetCompanyEventAttendance(companyID int64, eventID int64,
 
 func (s *EventService) ListCompanyEventAttendance(companyID int64, eventID int64, userID int64) ([]model.EventAttendanceView, error) {
 	return s.repo.ListCompanyEventAttendance(companyID, eventID, userID)
+}
+
+func normalizeWeekday(day time.Weekday) int {
+	if day == time.Sunday {
+		return 7
+	}
+	return int(day)
+}
+
+func hasEventAddress(event model.Event) bool {
+	return (event.PlaceName != nil && strings.TrimSpace(*event.PlaceName) != "") ||
+		(event.PlaceLink != nil && strings.TrimSpace(*event.PlaceLink) != "")
+}
+
+func availabilityCoversEvent(item model.UserAvailability, start time.Time, end *time.Time) bool {
+	if item.StartTime.After(start) {
+		return false
+	}
+	if end == nil || !end.After(start) {
+		return item.EndTime.After(start) || item.EndTime.Equal(start)
+	}
+	return item.EndTime.After(*end) || item.EndTime.Equal(*end)
 }
