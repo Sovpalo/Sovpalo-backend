@@ -1,18 +1,26 @@
 package service
 
 import (
+	"context"
 	"errors"
+	"strings"
 
 	"github.com/Sovpalo/sovpalo-backend/pkg/model"
 	"github.com/Sovpalo/sovpalo-backend/pkg/repository"
 )
 
 type IdeaService struct {
-	repo repository.Idea
+	repo        repository.Idea
+	companyRepo repository.Company
+	generator   IdeaGenerator
 }
 
-func NewIdeaService(repo repository.Idea) *IdeaService {
-	return &IdeaService{repo: repo}
+func NewIdeaService(repo repository.Idea, companyRepo repository.Company, generator IdeaGenerator) *IdeaService {
+	return &IdeaService{
+		repo:        repo,
+		companyRepo: companyRepo,
+		generator:   generator,
+	}
 }
 
 func (s *IdeaService) CreateCompanyIdea(companyID int64, userID int64, input model.IdeaCreateInput, photoFileName string, photoFileData []byte) (int64, error) {
@@ -38,6 +46,53 @@ func (s *IdeaService) CreateCompanyIdea(companyID int64, userID int64, input mod
 		return 0, err
 	}
 	return id, nil
+}
+
+func (s *IdeaService) GenerateCompanyIdeas(ctx context.Context, companyID int64, userID int64, input model.IdeaGenerateInput) ([]model.GeneratedIdeaDraft, error) {
+	if strings.TrimSpace(input.Topic) == "" {
+		return nil, ErrIdeaTopicRequired
+	}
+
+	count := input.Count
+	if count == 0 {
+		count = defaultIdeaCount
+	}
+	if count < 1 || count > maxIdeaCount {
+		return nil, ErrIdeaCountOutOfRange
+	}
+
+	company, err := s.companyRepo.GetCompany(companyID, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	request := IdeaGenerationRequest{
+		CompanyName: company.Name,
+		Topic:       input.Topic,
+		Context:     input.Context,
+		Audience:    input.Audience,
+		Constraints: input.Constraints,
+		Tone:        input.Tone,
+		Count:       count,
+	}
+	prompt := buildIdeaPrompt(request, count)
+
+	items, err := s.generator.GenerateIdeas(ctx, request)
+	if err != nil {
+		return nil, err
+	}
+
+	result := make([]model.GeneratedIdeaDraft, 0, len(items))
+	for _, item := range items {
+		result = append(result, model.GeneratedIdeaDraft{
+			Title:       item.Title,
+			Description: item.Description,
+			Source:      yandexIdeaSourceName,
+			LLMPrompt:   prompt,
+		})
+	}
+
+	return result, nil
 }
 
 func (s *IdeaService) ListCompanyIdeas(companyID int64, userID int64) ([]model.IdeaView, error) {

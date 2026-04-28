@@ -179,6 +179,8 @@ func normalizeErrorMessage(statusCode int, message string) string {
 		return "Only the author can delete this message."
 	case "title is required":
 		return "Field title is required."
+	case "topic is required":
+		return "Field topic is required."
 	case "name is required":
 		return "Field name is required."
 	case "username is required":
@@ -187,6 +189,8 @@ func normalizeErrorMessage(statusCode int, message string) string {
 		return "Field start_time is required."
 	case "title cannot be empty":
 		return "Field title cannot be empty."
+	case "count must be between 1 and 5":
+		return "Field count must be between 1 and 5."
 	case "description cannot be empty":
 		return "Field description cannot be empty."
 	case "password updated":
@@ -235,6 +239,14 @@ func normalizeErrorMessage(statusCode int, message string) string {
 		return "Could not send the email right now. Please try again later."
 	}
 
+	if strings.Contains(message, "idea generation service is not configured") {
+		return "Idea generation service is temporarily unavailable."
+	}
+
+	if strings.Contains(message, "idea generation request failed:") ||
+		strings.Contains(message, "idea generation returned invalid response") {
+		return "Could not generate ideas right now. Please try again later."
+	}
 
 	if strings.Contains(message, "no rows in result set") {
 		return "Requested item was not found."

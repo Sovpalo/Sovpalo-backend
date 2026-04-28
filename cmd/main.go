@@ -40,7 +40,7 @@ func main() {
 	)
 	healthService := service.NewHealthService(healthRepo)
 	repos := repository.NewRepository(pool, redisClient)
-	services := service.NewService(repos)
+	services := service.NewService(repos, cfg)
 	handlers := handler.NewHandler(healthService, services)
 
 	srv := new(sovpalo.Server)

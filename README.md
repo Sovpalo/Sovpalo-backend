@@ -36,6 +36,16 @@ JWT_SECRET=change_me
 PASSWORD_SALT=change_me
 ```
 
+Для генерации черновиков идей через YandexGPT нужно дополнительно задать:
+
+```bash
+LLM_PROVIDER=yandex
+LLM_TIMEOUT_SEC=15
+YANDEX_API_KEY=your_api_key
+YANDEX_FOLDER_ID=your_folder_id
+YANDEX_MODEL=yandexgpt/latest
+```
+
 Для локальной базы должны совпадать переменные приложения и контейнера PostgreSQL:
 
 ```bash
@@ -78,6 +88,7 @@ go run ./cmd/migrate status
 - `POST /events` и `POST /companies/:id/events` — создание встречи. Поддерживают `application/json` с `photo_url` и `multipart/form-data` с полями `title`, `description`, `photo_url`, `start_time`, `end_time`, `company_id`, `photo`. Файл `photo` сохраняется на сервере, а в `photo_url` записывается URL.
 - `PATCH /events/:id` и `PATCH /companies/:id/events/:event_id` — обновление встречи. Поддерживают `application/json` с `photo_url` и `multipart/form-data` с полями `title`, `description`, `photo_url`, `start_time`, `end_time`, `photo`. Файл `photo` сохраняется на сервере, а в `photo_url` записывается URL.
 - `POST /companies/:id/ideas` — создание идеи. Поддерживает `application/json` с `photo_url` и `multipart/form-data` с полями `title`, `description`, `photo_url`, `photo`. Файл `photo` сохраняется на сервере, а в `photo_url` записывается URL.
+- `POST /companies/:id/ideas/generate` — генерация черновиков идей через YandexGPT. Принимает `topic`, опционально `context`, `audience`, `constraints`, `tone`, `count`, возвращает массив черновиков с `title`, `description`, `source`, `llm_prompt`.
 - `PATCH /companies/:id/ideas/:idea_id` — обновление идеи её автором. Поддерживает `application/json` с `title`, `description`, `photo_url` и `multipart/form-data` с полями `title`, `description`, `photo_url`, `photo`. Файл `photo` сохраняется на сервере, а в `photo_url` записывается URL.
 - Ответы со списками участников, приглашений, посещаемости, идей и доступности включают `avatar_url` пользователя там, где возвращаются данные пользователя.
 

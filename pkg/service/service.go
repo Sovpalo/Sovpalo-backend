@@ -1,8 +1,10 @@
 package service
 
 import (
+	"context"
 	"time"
 
+	"github.com/Sovpalo/sovpalo-backend/internal/config"
 	"github.com/Sovpalo/sovpalo-backend/pkg/model"
 	"github.com/Sovpalo/sovpalo-backend/pkg/repository"
 )
@@ -16,13 +18,15 @@ type Service struct {
 	Chat
 }
 
-func NewService(repos *repository.Repository) *Service {
+func NewService(repos *repository.Repository, cfg config.Config) *Service {
+	ideaGenerator := NewIdeaGenerator(cfg)
+
 	return &Service{
 		Authorization: NewAuthService(repos.Authorization),
 		Company:       NewCompanyService(repos.Company),
 		Event:         NewEventService(repos.Event),
 		Availability:  NewAvailabilityService(repos.Availability),
-		Idea:          NewIdeaService(repos.Idea),
+		Idea:          NewIdeaService(repos.Idea, repos.Company, ideaGenerator),
 		Chat:          NewChatService(repos.Chat),
 	}
 }
@@ -87,6 +91,7 @@ type Availability interface {
 
 type Idea interface {
 	CreateCompanyIdea(companyID int64, userID int64, input model.IdeaCreateInput, photoFileName string, photoFileData []byte) (int64, error)
+	GenerateCompanyIdeas(ctx context.Context, companyID int64, userID int64, input model.IdeaGenerateInput) ([]model.GeneratedIdeaDraft, error)
 	ListCompanyIdeas(companyID int64, userID int64) ([]model.IdeaView, error)
 	GetCompanyIdea(companyID int64, userID int64, ideaID int64) (model.IdeaView, error)
 	UpdateCompanyIdea(companyID int64, userID int64, ideaID int64, input model.IdeaUpdateInput, photoFileName string, photoFileData []byte) error

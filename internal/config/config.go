@@ -20,6 +20,13 @@ type Config struct {
 	RedisPort     string
 	RedisPassword string
 	RedisDB       int
+
+	LLMProvider   string
+	LLMTimeoutSec int
+
+	YandexAPIKey   string
+	YandexFolderID string
+	YandexModel    string
 }
 
 func Load() Config {
@@ -37,6 +44,13 @@ func Load() Config {
 		RedisPort:     getEnv("REDIS_PORT", "6379"),
 		RedisPassword: getEnv("REDIS_PASSWORD", ""),
 		RedisDB:       getEnvInt("REDIS_DB", 0),
+
+		LLMProvider:   getEnv("LLM_PROVIDER", ""),
+		LLMTimeoutSec: getEnvInt("LLM_TIMEOUT_SEC", 15),
+
+		YandexAPIKey:   getEnv("YANDEX_API_KEY", ""),
+		YandexFolderID: getEnv("YANDEX_FOLDER_ID", ""),
+		YandexModel:    getEnv("YANDEX_MODEL", "yandexgpt/latest"),
 	}
 }
 

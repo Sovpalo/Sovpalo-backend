@@ -39,6 +39,34 @@ func (h *Handler) createCompanyIdea(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"id": id})
 }
 
+func (h *Handler) generateCompanyIdeas(c *gin.Context) {
+	userID, err := getUserId(c)
+	if err != nil {
+		newErrorResponse(c, http.StatusUnauthorized, err.Error())
+		return
+	}
+
+	companyID, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		newErrorResponse(c, http.StatusBadRequest, "invalid company id")
+		return
+	}
+
+	var input model.IdeaGenerateInput
+	if err := c.BindJSON(&input); err != nil {
+		newErrorResponse(c, http.StatusBadRequest, bindingErrorMessage(err))
+		return
+	}
+
+	items, err := h.services.Idea.GenerateCompanyIdeas(c.Request.Context(), companyID, int64(userID), input)
+	if err != nil {
+		newErrorResponse(c, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"items": items})
+}
+
 func parseIdeaCreateInput(c *gin.Context) (model.IdeaCreateInput, string, []byte, error) {
 	contentType := c.GetHeader("Content-Type")
 	if !strings.HasPrefix(contentType, "multipart/form-data") {

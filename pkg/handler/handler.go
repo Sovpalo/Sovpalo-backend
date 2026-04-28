@@ -122,6 +122,8 @@ func (h *Handler) InitRoutes() *gin.Engine {
 
 	companyIdeas := router.Group("/companies/:id/ideas", h.userIdentity)
 	{
+		// POST /companies/:id/ideas/generate - generate idea drafts for company
+		companyIdeas.POST("/generate", h.generateCompanyIdeas)
 		// POST /companies/:id/ideas - create idea for company
 		companyIdeas.POST("", h.createCompanyIdea)
 		// GET /companies/:id/ideas - list company ideas
@@ -151,7 +153,6 @@ func (h *Handler) InitRoutes() *gin.Engine {
 		// POST /companies/:id/availability/intersections - get intersections in range
 		availability.POST("/intersections", h.getAvailabilityIntersections)
 	}
-
 
 	companyChat := router.Group("/companies/:id/chat", h.userIdentity)
 	{
