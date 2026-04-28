@@ -27,6 +27,7 @@ type chatClient struct {
 	conn      *websocket.Conn
 	send      chan []byte
 	companyID int64
+	userID    int64
 }
 
 func newChatHub() *chatHub {
@@ -78,6 +79,43 @@ func (h *chatHub) BroadcastToCompany(companyID int64, event model.ChatRealtimeEv
 	h.mu.RUnlock()
 
 	for _, client := range targets {
+		select {
+		case client.send <- payload:
+		default:
+			h.Unregister(client)
+			_ = client.conn.Close()
+		}
+	}
+}
+
+func (h *chatHub) BroadcastMessageCreated(companyID int64, message model.ChatMessageView) {
+	h.mu.RLock()
+	clients := h.byCompanyID[companyID]
+	targets := make([]*chatClient, 0, len(clients))
+	for client := range clients {
+		targets = append(targets, client)
+	}
+	h.mu.RUnlock()
+
+	for _, client := range targets {
+		messageForClient := message
+		if client.userID == message.SenderID {
+			messageForClient.IsReadByCurrentUser = true
+		} else {
+			messageForClient.IsReadByCurrentUser = false
+			messageForClient.ReadAt = nil
+		}
+
+		payload, err := json.Marshal(model.ChatRealtimeEvent{
+			Type:      "message_created",
+			CompanyID: companyID,
+			Message:   &messageForClient,
+		})
+		if err != nil {
+			log.Printf("chat hub marshal error: %v", err)
+			return
+		}
+
 		select {
 		case client.send <- payload:
 		default:

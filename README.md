@@ -90,7 +90,15 @@ go run ./cmd/migrate status
 - `POST /companies/:id/ideas` — создание идеи. Поддерживает `application/json` с `photo_url` и `multipart/form-data` с полями `title`, `description`, `photo_url`, `photo`. Файл `photo` сохраняется на сервере, а в `photo_url` записывается URL.
 - `POST /companies/:id/ideas/generate` — генерация черновиков идей через YandexGPT. Принимает `topic`, опционально `context`, `audience`, `constraints`, `tone`, `count`, возвращает массив черновиков с `title`, `description`, `source`, `llm_prompt`.
 - `PATCH /companies/:id/ideas/:idea_id` — обновление идеи её автором. Поддерживает `application/json` с `title`, `description`, `photo_url` и `multipart/form-data` с полями `title`, `description`, `photo_url`, `photo`. Файл `photo` сохраняется на сервере, а в `photo_url` записывается URL.
+- `GET /companies/:id/chat/messages` — получить историю чата компании. Поддерживает `before_id` и `limit` для пагинации.
+- `POST /companies/:id/chat/messages` — отправить сообщение в чат компании. Поддерживает `application/json` с `text` или `multipart/form-data` с одним или несколькими полями `media` для фото/видео.
+- `DELETE /companies/:id/chat/messages/:message_id` — удалить своё сообщение из чата компании.
+- `POST /companies/:id/chat/messages/read` — отметить сообщения как прочитанные. Принимает массив `message_ids`.
+- `GET /companies/:id/chat/unread-count` — получить количество непрочитанных сообщений в чате компании.
+- `GET /companies/:id/chat/ws?token=<jwt>` — WebSocket-подключение для realtime-событий `message_created`, `messages_read`, `message_deleted`.
 - Ответы со списками участников, приглашений, посещаемости, идей и доступности включают `avatar_url` пользователя там, где возвращаются данные пользователя.
+
+Краткий контракт для мобильного клиента с JSON-примерами: [docs/mobile-chat-contract.md](/Users/gaane/dev/sovpalo-backend-clean/docs/mobile-chat-contract.md:1).
 
 ### Пример регистрации
 

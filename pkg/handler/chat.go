@@ -55,6 +55,10 @@ func (h *Handler) listCompanyChatMessages(c *gin.Context) {
 
 	messages, err := h.services.Chat.ListCompanyMessages(companyID, int64(userID), beforeID, limit)
 	if err != nil {
+		if isChatAccessDenied(err) {
+			newErrorResponse(c, http.StatusForbidden, err.Error())
+			return
+		}
 		newErrorResponse(c, http.StatusBadRequest, err.Error())
 		return
 	}
@@ -102,11 +106,7 @@ func (h *Handler) createCompanyChatMessage(c *gin.Context) {
 		}
 	}
 
-	h.chatHub.BroadcastToCompany(companyID, model.ChatRealtimeEvent{
-		Type:      "message_created",
-		CompanyID: companyID,
-		Message:   &message,
-	})
+	h.chatHub.BroadcastMessageCreated(companyID, message)
 
 	c.JSON(http.StatusOK, message)
 }
@@ -134,6 +134,8 @@ func (h *Handler) deleteCompanyChatMessage(c *gin.Context) {
 		switch {
 		case errors.Is(err, service.ErrChatMessageNotFound):
 			newErrorResponse(c, http.StatusNotFound, err.Error())
+		case isChatAccessDenied(err):
+			newErrorResponse(c, http.StatusForbidden, err.Error())
 		default:
 			newErrorResponse(c, http.StatusBadRequest, err.Error())
 		}
@@ -170,6 +172,10 @@ func (h *Handler) markCompanyChatMessagesRead(c *gin.Context) {
 
 	result, err := h.services.Chat.MarkCompanyMessagesRead(companyID, int64(userID), input)
 	if err != nil {
+		if isChatAccessDenied(err) {
+			newErrorResponse(c, http.StatusForbidden, err.Error())
+			return
+		}
 		newErrorResponse(c, http.StatusBadRequest, err.Error())
 		return
 	}
@@ -203,6 +209,10 @@ func (h *Handler) getCompanyChatUnreadCount(c *gin.Context) {
 
 	count, err := h.services.Chat.GetCompanyUnreadCount(companyID, int64(userID))
 	if err != nil {
+		if isChatAccessDenied(err) {
+			newErrorResponse(c, http.StatusForbidden, err.Error())
+			return
+		}
 		newErrorResponse(c, http.StatusBadRequest, err.Error())
 		return
 	}
@@ -250,6 +260,7 @@ func (h *Handler) companyChatWebSocket(c *gin.Context) {
 		conn:      conn,
 		send:      make(chan []byte, 32),
 		companyID: companyID,
+		userID:    int64(userID),
 	}
 	h.chatHub.Register(client)
 
@@ -298,4 +309,8 @@ func parseInt64Query(c *gin.Context, key string) (int64, error) {
 		return 0, nil
 	}
 	return strconv.ParseInt(value, 10, 64)
+}
+
+func isChatAccessDenied(err error) bool {
+	return err != nil && err.Error() == "user is not a member of the company"
 }
