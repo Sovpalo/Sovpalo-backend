@@ -12,12 +12,14 @@ import (
 type Handler struct {
 	health   service.HealthService
 	services *service.Service
+	chatHub  *chatHub
 }
 
 func NewHandler(health service.HealthService, services *service.Service) *Handler {
 	return &Handler{
 		health:   health,
 		services: services,
+		chatHub:  newChatHub(),
 	}
 }
 
@@ -149,6 +151,18 @@ func (h *Handler) InitRoutes() *gin.Engine {
 		// POST /companies/:id/availability/intersections - get intersections in range
 		availability.POST("/intersections", h.getAvailabilityIntersections)
 	}
+
+
+	companyChat := router.Group("/companies/:id/chat", h.userIdentity)
+	{
+		companyChat.GET("/messages", h.listCompanyChatMessages)
+		companyChat.POST("/messages", h.createCompanyChatMessage)
+		companyChat.DELETE("/messages/:message_id", h.deleteCompanyChatMessage)
+		companyChat.POST("/messages/read", h.markCompanyChatMessagesRead)
+		companyChat.GET("/unread-count", h.getCompanyChatUnreadCount)
+	}
+
+	router.GET("/companies/:id/chat/ws", h.companyChatWebSocket)
 
 	return router
 }

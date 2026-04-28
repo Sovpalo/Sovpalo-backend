@@ -14,6 +14,7 @@ type Repository struct {
 	Event
 	Availability
 	Idea
+	Chat
 }
 
 func NewRepository(pool *pgxpool.Pool, cache *redis.Client) *Repository {
@@ -23,6 +24,7 @@ func NewRepository(pool *pgxpool.Pool, cache *redis.Client) *Repository {
 		Event:         NewEventRepository(pool),
 		Availability:  NewAvailabilityRepository(pool),
 		Idea:          NewIdeaRepository(pool),
+		Chat:          NewChatRepository(pool),
 	}
 }
 
@@ -86,4 +88,12 @@ type Idea interface {
 	UpdateCompanyIdea(companyID int64, userID int64, ideaID int64, input model.IdeaUpdateInput) error
 	LikeCompanyIdea(companyID int64, userID int64, ideaID int64) error
 	UnlikeCompanyIdea(companyID int64, userID int64, ideaID int64) error
+}
+
+type Chat interface {
+	ListCompanyChatMessages(companyID int64, userID int64, beforeMessageID int64, limit int) ([]model.ChatMessageView, error)
+	CreateCompanyChatMessage(companyID int64, userID int64, text *string, attachments []model.ChatAttachmentCreate) (model.ChatMessageView, error)
+	DeleteCompanyChatMessage(companyID int64, messageID int64, userID int64) ([]model.ChatAttachment, error)
+	MarkCompanyChatMessagesRead(companyID int64, userID int64, messageIDs []int64) ([]int64, time.Time, error)
+	GetCompanyChatUnreadCount(companyID int64, userID int64) (int64, error)
 }

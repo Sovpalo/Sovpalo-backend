@@ -13,6 +13,7 @@ type Service struct {
 	Event
 	Availability
 	Idea
+	Chat
 }
 
 func NewService(repos *repository.Repository) *Service {
@@ -22,6 +23,7 @@ func NewService(repos *repository.Repository) *Service {
 		Event:         NewEventService(repos.Event),
 		Availability:  NewAvailabilityService(repos.Availability),
 		Idea:          NewIdeaService(repos.Idea),
+		Chat:          NewChatService(repos.Chat),
 	}
 }
 
@@ -90,4 +92,13 @@ type Idea interface {
 	UpdateCompanyIdea(companyID int64, userID int64, ideaID int64, input model.IdeaUpdateInput, photoFileName string, photoFileData []byte) error
 	LikeCompanyIdea(companyID int64, userID int64, ideaID int64) error
 	UnlikeCompanyIdea(companyID int64, userID int64, ideaID int64) error
+}
+
+type Chat interface {
+	ListCompanyMessages(companyID int64, userID int64, beforeMessageID int64, limit int) ([]model.ChatMessageView, error)
+	CreateCompanyTextMessage(companyID int64, userID int64, input model.ChatMessageCreateInput) (model.ChatMessageView, error)
+	CreateCompanyMediaMessage(companyID int64, userID int64, files []ChatUploadFile) (model.ChatMessageView, error)
+	DeleteCompanyMessage(companyID int64, messageID int64, userID int64) error
+	MarkCompanyMessagesRead(companyID int64, userID int64, input model.ChatMarkReadInput) (model.ChatReadResult, error)
+	GetCompanyUnreadCount(companyID int64, userID int64) (int64, error)
 }

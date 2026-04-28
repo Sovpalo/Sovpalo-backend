@@ -102,6 +102,12 @@ func normalizeErrorMessage(statusCode int, message string) string {
 		return "Idea ID must be a valid number."
 	case "invalid availability id":
 		return "Availability ID must be a valid number."
+	case "invalid message id":
+		return "Message ID must be a valid number."
+	case "invalid before_id":
+		return "Field before_id must be a valid number."
+	case "invalid limit":
+		return "Field limit must be a valid number."
 	case "invalid start_time":
 		return "Field start_time must be a valid RFC3339 date-time."
 	case "invalid end_time":
@@ -153,6 +159,24 @@ func normalizeErrorMessage(statusCode int, message string) string {
 		return "Only the company owner can remove members."
 	case "cannot remove company owner":
 		return "The company owner cannot be removed."
+	case "message text is required":
+		return "Field text is required."
+	case "message must contain text or media":
+		return "Message must contain text or media."
+	case "message cannot contain both text and media":
+		return "Message cannot contain both text and media."
+	case "too many media files":
+		return "Too many media files attached to the message."
+	case "chat media file is too large":
+		return "Media file is too large."
+	case "chat media must be an image or mp4/webm/mov video":
+		return "Media must be an image or MP4/WEBM/MOV video."
+	case "message_ids are required":
+		return "Field message_ids is required."
+	case "message not found":
+		return "Message not found."
+	case "only author can delete message":
+		return "Only the author can delete this message."
 	case "title is required":
 		return "Field title is required."
 	case "name is required":
@@ -177,6 +201,8 @@ func normalizeErrorMessage(statusCode int, message string) string {
 		return "Avatar file must be 5 MB or smaller."
 	case "avatar must be a png, jpeg, webp or gif image":
 		return "Avatar must be a PNG, JPEG, WEBP or GIF image."
+	case "failed to open media file", "failed to read media file":
+		return "Could not process the uploaded media file."
 	case "failed to open avatar file", "failed to read avatar file":
 		return "Could not process the uploaded avatar."
 	}
@@ -208,6 +234,7 @@ func normalizeErrorMessage(statusCode int, message string) string {
 		strings.Contains(message, "error sending email:") {
 		return "Could not send the email right now. Please try again later."
 	}
+
 
 	if strings.Contains(message, "no rows in result set") {
 		return "Requested item was not found."
