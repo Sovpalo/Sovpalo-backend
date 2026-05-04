@@ -177,3 +177,9 @@ func TestEventServiceGetCompanyEventFeaturesPropagatesRepoError(t *testing.T) {
 		t.Fatalf("expected %v, got %v", expectedErr, err)
 	}
 }
+
+func TestNormalizeWeekdayReturnsZeroForSunday(t *testing.T) {
+	if got := normalizeWeekday(time.Sunday); got != 0 {
+		t.Fatalf("expected sunday as 0, got %d", got)
+	}
+}

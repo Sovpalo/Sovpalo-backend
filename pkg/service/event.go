@@ -200,9 +200,6 @@ func (s *EventService) ListCompanyEventAttendance(companyID int64, eventID int64
 }
 
 func normalizeWeekday(day time.Weekday) int {
-	if day == time.Sunday {
-		return 7
-	}
 	return int(day)
 }
 
