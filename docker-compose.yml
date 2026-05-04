@@ -73,6 +73,11 @@ services:
       SMTP_FORCE_IPV4: ${SMTP_FORCE_IPV4:-true}
       SMTP_TIMEOUT_SEC: ${SMTP_TIMEOUT_SEC:-20}
       SMTP_SKIP_TLS_VERIFY: ${SMTP_SKIP_TLS_VERIFY:-false}
+      LLM_PROVIDER: ${LLM_PROVIDER:-}
+      LLM_TIMEOUT_SEC: ${LLM_TIMEOUT_SEC:-15}
+      YANDEX_API_KEY: ${YANDEX_API_KEY:-}
+      YANDEX_FOLDER_ID: ${YANDEX_FOLDER_ID:-}
+      YANDEX_MODEL: ${YANDEX_MODEL:-yandexgpt/latest}
     ports:
       - "8000:8000"
     restart: unless-stopped
