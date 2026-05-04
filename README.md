@@ -20,43 +20,6 @@ docker compose up -d
 
 2) Приложение будет доступно на `http://localhost:8000`.
 
-Для регистрации, входа и восстановления пароля через email перед запуском API нужно задать SMTP-переменные:
-
-```bash
-SMTP_HOST=smtp.mail.ru
-SMTP_PORT=465
-SMTP_USERNAME=sovpalodevteam@mail.ru
-SMTP_PASSWORD=app_password
-SMTP_FROM=sovpalodevteam@mail.ru
-SMTP_SSL=true
-SMTP_FORCE_IPV4=true
-SMTP_TIMEOUT_SEC=20
-SMTP_SKIP_TLS_VERIFY=false
-JWT_SECRET=change_me
-PASSWORD_SALT=change_me
-```
-
-Для генерации черновиков идей через YandexGPT нужно дополнительно задать:
-
-```bash
-LLM_PROVIDER=yandex
-LLM_TIMEOUT_SEC=15
-YANDEX_API_KEY=your_api_key
-YANDEX_FOLDER_ID=your_folder_id
-YANDEX_MODEL=yandexgpt/latest
-```
-
-Для локальной базы должны совпадать переменные приложения и контейнера PostgreSQL:
-
-```bash
-DB_USER=postgres
-DB_PASSWORD=postgres
-DB_NAME=sovpalo
-DB_HOST=localhost
-DB_PORT=5433
-DB_SSLMODE=disable
-```
-
 ## Миграции
 
 Команды запускаются через `cmd/migrate` (используется goose):
