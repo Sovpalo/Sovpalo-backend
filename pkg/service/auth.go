@@ -7,13 +7,17 @@ import (
 	"crypto/sha1"
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io/fs"
 	"math/big"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
+	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -328,9 +332,11 @@ func (s *AuthService) SignIn(input model.SignInInput) (string, error) {
 }
 
 func (s *AuthService) SignInTelegram(input model.TelegramSignInInput) (string, error) {
-	if err := s.validateTelegramAuth(input); err != nil {
+	verifiedInput, err := s.validateTelegramAuth(input)
+	if err != nil {
 		return "", err
 	}
+	input = verifiedInput
 
 	user, err := s.repo.GetUserByTelegramID(input.ID)
 	if err != nil {
@@ -607,53 +613,145 @@ func validatePassword(password string) error {
 	return nil
 }
 
-func (s *AuthService) validateTelegramAuth(input model.TelegramSignInInput) error {
+func (s *AuthService) validateTelegramAuth(input model.TelegramSignInInput) (model.TelegramSignInInput, error) {
 	botToken := os.Getenv("TELEGRAM_BOT_TOKEN")
 	if botToken == "" {
-		return errors.New("TELEGRAM_BOT_TOKEN not set")
+		return model.TelegramSignInInput{}, errors.New("TELEGRAM_BOT_TOKEN not set")
+	}
+	if input.InitData != "" {
+		return validateTelegramWebAppAuth(input.InitData, botToken)
+	}
+	if input.ID == 0 || input.FirstName == "" || input.AuthDate == 0 || input.Hash == "" {
+		return model.TelegramSignInInput{}, ErrInvalidTelegramAuth
 	}
 
-	authTime := time.Unix(input.AuthDate, 0)
-	if time.Since(authTime) > telegramAuthMaxAge {
-		return ErrTelegramAuthExpired
-	}
-
-	if time.Until(authTime) > 30*time.Second {
-		return ErrInvalidTelegramAuth
+	if err := validateTelegramAuthDate(input.AuthDate); err != nil {
+		return model.TelegramSignInInput{}, err
 	}
 
 	expectedHash := telegramAuthHash(input, botToken)
 	if !hmac.Equal([]byte(expectedHash), []byte(input.Hash)) {
-		return ErrInvalidTelegramAuth
+		return model.TelegramSignInInput{}, ErrInvalidTelegramAuth
 	}
 
-	return nil
+	return input, nil
 }
 
 func telegramAuthHash(input model.TelegramSignInInput, botToken string) string {
-	payload := telegramDataCheckString(input)
+	payload := telegramDataCheckString(telegramLoginWidgetAuthData(input))
 	secret := sha256.Sum256([]byte(botToken))
 	mac := hmac.New(sha256.New, secret[:])
 	mac.Write([]byte(payload))
 	return hex.EncodeToString(mac.Sum(nil))
 }
 
-func telegramDataCheckString(input model.TelegramSignInInput) string {
-	pairs := []string{
-		fmt.Sprintf("auth_date=%d", input.AuthDate),
-		fmt.Sprintf("first_name=%s", input.FirstName),
-		fmt.Sprintf("id=%d", input.ID),
+func validateTelegramWebAppAuth(initData string, botToken string) (model.TelegramSignInInput, error) {
+	values, err := url.ParseQuery(initData)
+	if err != nil {
+		return model.TelegramSignInInput{}, ErrInvalidTelegramAuth
 	}
 
+	actualHash := values.Get("hash")
+	if actualHash == "" {
+		return model.TelegramSignInInput{}, ErrInvalidTelegramAuth
+	}
+	values.Del("hash")
+
+	authDate, err := strconv.ParseInt(values.Get("auth_date"), 10, 64)
+	if err != nil || authDate == 0 {
+		return model.TelegramSignInInput{}, ErrInvalidTelegramAuth
+	}
+	if err := validateTelegramAuthDate(authDate); err != nil {
+		return model.TelegramSignInInput{}, err
+	}
+
+	userJSON := values.Get("user")
+	if userJSON == "" {
+		return model.TelegramSignInInput{}, ErrInvalidTelegramAuth
+	}
+
+	var webAppUser struct {
+		ID        int64   `json:"id"`
+		FirstName string  `json:"first_name"`
+		LastName  *string `json:"last_name"`
+		Username  *string `json:"username"`
+		PhotoURL  *string `json:"photo_url"`
+	}
+	if err := json.Unmarshal([]byte(userJSON), &webAppUser); err != nil {
+		return model.TelegramSignInInput{}, ErrInvalidTelegramAuth
+	}
+	if webAppUser.ID == 0 || webAppUser.FirstName == "" {
+		return model.TelegramSignInInput{}, ErrInvalidTelegramAuth
+	}
+
+	secretMAC := hmac.New(sha256.New, []byte("WebAppData"))
+	secretMAC.Write([]byte(botToken))
+	secret := secretMAC.Sum(nil)
+
+	hashMAC := hmac.New(sha256.New, secret)
+	hashMAC.Write([]byte(telegramDataCheckStringFromValues(values)))
+	expectedHash := hex.EncodeToString(hashMAC.Sum(nil))
+	if !hmac.Equal([]byte(expectedHash), []byte(actualHash)) {
+		return model.TelegramSignInInput{}, ErrInvalidTelegramAuth
+	}
+
+	return model.TelegramSignInInput{
+		InitData:  initData,
+		ID:        webAppUser.ID,
+		FirstName: webAppUser.FirstName,
+		LastName:  webAppUser.LastName,
+		Username:  webAppUser.Username,
+		PhotoURL:  webAppUser.PhotoURL,
+		AuthDate:  authDate,
+		Hash:      actualHash,
+	}, nil
+}
+
+func validateTelegramAuthDate(authDate int64) error {
+	authTime := time.Unix(authDate, 0)
+	if time.Since(authTime) > telegramAuthMaxAge {
+		return ErrTelegramAuthExpired
+	}
+	if time.Until(authTime) > 30*time.Second {
+		return ErrInvalidTelegramAuth
+	}
+	return nil
+}
+
+func telegramLoginWidgetAuthData(input model.TelegramSignInInput) map[string]string {
+	data := map[string]string{
+		"auth_date":  fmt.Sprintf("%d", input.AuthDate),
+		"first_name": input.FirstName,
+		"id":         fmt.Sprintf("%d", input.ID),
+	}
 	if input.LastName != nil && *input.LastName != "" {
-		pairs = append(pairs, fmt.Sprintf("last_name=%s", *input.LastName))
+		data["last_name"] = *input.LastName
 	}
 	if input.PhotoURL != nil && *input.PhotoURL != "" {
-		pairs = append(pairs, fmt.Sprintf("photo_url=%s", *input.PhotoURL))
+		data["photo_url"] = *input.PhotoURL
 	}
 	if input.Username != nil && *input.Username != "" {
-		pairs = append(pairs, fmt.Sprintf("username=%s", *input.Username))
+		data["username"] = *input.Username
 	}
+	return data
+}
+
+func telegramDataCheckStringFromValues(values url.Values) string {
+	data := make(map[string]string, len(values))
+	for key, value := range values {
+		if len(value) > 0 {
+			data[key] = value[0]
+		}
+	}
+	return telegramDataCheckString(data)
+}
+
+func telegramDataCheckString(data map[string]string) string {
+	pairs := make([]string, 0, len(data))
+	for key, value := range data {
+		pairs = append(pairs, key+"="+value)
+	}
+	sort.Strings(pairs)
 
 	return strings.Join(pairs, "\n")
 }

@@ -64,6 +64,7 @@ services:
       REDIS_DB: ${REDIS_DB:-0}
       JWT_SECRET: ${JWT_SECRET:-change_me}
       PASSWORD_SALT: ${PASSWORD_SALT:-change_me}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
       SMTP_HOST: ${SMTP_HOST:-}
       SMTP_PORT: ${SMTP_PORT:-587}
       SMTP_USERNAME: ${SMTP_USERNAME:-}

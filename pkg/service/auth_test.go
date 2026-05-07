@@ -1,7 +1,12 @@
 package service
 
 import (
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
+	"fmt"
+	"net/url"
 	"os"
 	"testing"
 	"time"
@@ -110,6 +115,40 @@ func TestAuthServiceSignInTelegramCreatesUser(t *testing.T) {
 	}
 }
 
+func TestAuthServiceSignInTelegramAcceptsWebAppInitData(t *testing.T) {
+	t.Setenv("JWT_SECRET", "jwt-secret")
+	t.Setenv("TELEGRAM_BOT_TOKEN", "telegram-bot-token")
+
+	repo := &authRepoStub{
+		userByTelegramID: map[int64]model.User{},
+		takenUsernames:   map[string]bool{},
+	}
+	svc := NewAuthService(repo)
+
+	initData := telegramWebAppInitData(
+		`{"id":888,"first_name":"Bob","username":"bob_tg","photo_url":"https://t.me/i/userpic/320/bob.jpg"}`,
+		time.Now().Unix(),
+		os.Getenv("TELEGRAM_BOT_TOKEN"),
+	)
+
+	token, err := svc.SignInTelegram(model.TelegramSignInInput{InitData: initData})
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if token == "" {
+		t.Fatal("expected token")
+	}
+	if len(repo.createdUsers) != 1 {
+		t.Fatalf("expected 1 created user, got %d", len(repo.createdUsers))
+	}
+	if repo.createdUsers[0].Username != "bob_tg" {
+		t.Fatalf("expected username bob_tg, got %s", repo.createdUsers[0].Username)
+	}
+	if repo.createdUsers[0].TelegramID == nil || *repo.createdUsers[0].TelegramID != 888 {
+		t.Fatalf("unexpected telegram id %#v", repo.createdUsers[0].TelegramID)
+	}
+}
+
 func TestAuthServiceSignInTelegramRejectsInvalidHash(t *testing.T) {
 	t.Setenv("JWT_SECRET", "jwt-secret")
 	t.Setenv("TELEGRAM_BOT_TOKEN", "telegram-bot-token")
@@ -128,6 +167,53 @@ func TestAuthServiceSignInTelegramRejectsInvalidHash(t *testing.T) {
 	}
 }
 
+func TestAuthServiceSignInTelegramRejectsInvalidWebAppHash(t *testing.T) {
+	t.Setenv("JWT_SECRET", "jwt-secret")
+	t.Setenv("TELEGRAM_BOT_TOKEN", "telegram-bot-token")
+
+	svc := NewAuthService(&authRepoStub{})
+	initData := telegramWebAppInitData(
+		`{"id":888,"first_name":"Bob","username":"bob_tg"}`,
+		time.Now().Unix(),
+		os.Getenv("TELEGRAM_BOT_TOKEN"),
+	) + "bad"
+
+	_, err := svc.SignInTelegram(model.TelegramSignInInput{InitData: initData})
+	if !errors.Is(err, ErrInvalidTelegramAuth) {
+		t.Fatalf("expected %v, got %v", ErrInvalidTelegramAuth, err)
+	}
+}
+
+func TestTelegramDataCheckStringSortsKeys(t *testing.T) {
+	actual := telegramDataCheckString(map[string]string{
+		"username":   "alice",
+		"id":         "777",
+		"auth_date":  "1710000000",
+		"first_name": "Alice",
+	})
+	expected := "auth_date=1710000000\nfirst_name=Alice\nid=777\nusername=alice"
+	if actual != expected {
+		t.Fatalf("expected %q, got %q", expected, actual)
+	}
+}
+
 func strPtr(value string) *string {
 	return &value
+}
+
+func telegramWebAppInitData(userJSON string, authDate int64, botToken string) string {
+	values := url.Values{}
+	values.Set("auth_date", fmt.Sprintf("%d", authDate))
+	values.Set("query_id", "AAHdF6IQAAAAAN0XohDhrOrc")
+	values.Set("user", userJSON)
+
+	secretMAC := hmac.New(sha256.New, []byte("WebAppData"))
+	secretMAC.Write([]byte(botToken))
+	secret := secretMAC.Sum(nil)
+
+	hashMAC := hmac.New(sha256.New, secret)
+	hashMAC.Write([]byte(telegramDataCheckStringFromValues(values)))
+	values.Set("hash", hex.EncodeToString(hashMAC.Sum(nil)))
+
+	return values.Encode()
 }

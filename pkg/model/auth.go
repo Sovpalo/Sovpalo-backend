@@ -26,13 +26,14 @@ type SignInInput struct {
 }
 
 type TelegramSignInInput struct {
-	ID        int64   `json:"id" binding:"required"`
-	FirstName string  `json:"first_name" binding:"required"`
+	InitData  string  `json:"init_data,omitempty"`
+	ID        int64   `json:"id"`
+	FirstName string  `json:"first_name"`
 	LastName  *string `json:"last_name,omitempty"`
 	Username  *string `json:"username,omitempty"`
 	PhotoURL  *string `json:"photo_url,omitempty"`
-	AuthDate  int64   `json:"auth_date" binding:"required"`
-	Hash      string  `json:"hash" binding:"required"`
+	AuthDate  int64   `json:"auth_date"`
+	Hash      string  `json:"hash"`
 }
 
 type ForgotPasswordInput struct {
