@@ -27,6 +27,13 @@ type Config struct {
 	YandexAPIKey   string
 	YandexFolderID string
 	YandexModel    string
+
+	APNSKeyID          string
+	APNSTeamID         string
+	APNSBundleID       string
+	APNSPrivateKeyPath string
+	APNSPrivateKey     string
+	APNSProduction     bool
 }
 
 func Load() Config {
@@ -51,6 +58,13 @@ func Load() Config {
 		YandexAPIKey:   getEnv("YANDEX_API_KEY", ""),
 		YandexFolderID: getEnv("YANDEX_FOLDER_ID", ""),
 		YandexModel:    getEnv("YANDEX_MODEL", "yandexgpt/latest"),
+
+		APNSKeyID:          getEnv("APNS_KEY_ID", ""),
+		APNSTeamID:         getEnv("APNS_TEAM_ID", ""),
+		APNSBundleID:       getEnv("APNS_BUNDLE_ID", ""),
+		APNSPrivateKeyPath: getEnv("APNS_PRIVATE_KEY_PATH", ""),
+		APNSPrivateKey:     getEnv("APNS_PRIVATE_KEY", ""),
+		APNSProduction:     getEnvBool("APNS_PRODUCTION", false),
 	}
 }
 
@@ -102,4 +116,12 @@ func getEnvInt(key string, fallback int) int {
 		return fallback
 	}
 	return parsed
+}
+
+func getEnvBool(key string, fallback bool) bool {
+	value := strings.ToLower(strings.TrimSpace(os.Getenv(key)))
+	if value == "" {
+		return fallback
+	}
+	return value == "true" || value == "1" || value == "yes"
 }

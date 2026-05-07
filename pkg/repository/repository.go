@@ -15,6 +15,7 @@ type Repository struct {
 	Availability
 	Idea
 	Chat
+	Notification
 }
 
 func NewRepository(pool *pgxpool.Pool, cache *redis.Client) *Repository {
@@ -25,6 +26,7 @@ func NewRepository(pool *pgxpool.Pool, cache *redis.Client) *Repository {
 		Availability:  NewAvailabilityRepository(pool),
 		Idea:          NewIdeaRepository(pool),
 		Chat:          NewChatRepository(pool),
+		Notification:  NewNotificationRepository(pool),
 	}
 }
 
@@ -94,7 +96,16 @@ type Idea interface {
 type Chat interface {
 	ListCompanyChatMessages(companyID int64, userID int64, beforeMessageID int64, limit int) ([]model.ChatMessageView, error)
 	CreateCompanyChatMessage(companyID int64, userID int64, text *string, attachments []model.ChatAttachmentCreate) (model.ChatMessageView, error)
+	ListCompanyChatRecipientIDs(companyID int64, senderID int64) ([]int64, error)
 	DeleteCompanyChatMessage(companyID int64, messageID int64, userID int64) ([]model.ChatAttachment, error)
 	MarkCompanyChatMessagesRead(companyID int64, userID int64, messageIDs []int64) ([]int64, time.Time, error)
 	GetCompanyChatUnreadCount(companyID int64, userID int64) (int64, error)
+}
+
+type Notification interface {
+	UpsertPushDeviceToken(userID int64, token string, platform string) error
+	DeletePushDeviceToken(userID int64, token string) error
+	CreateNotification(notification model.PushNotification) error
+	ListPushTokens(userID int64) ([]model.PushDeviceToken, error)
+	RemovePushDeviceToken(token string) error
 }

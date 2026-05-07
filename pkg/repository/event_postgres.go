@@ -212,6 +212,16 @@ func (r *EventPostgres) UpdateEvent(eventID int64, userID int64, input model.Eve
 		args = append(args, *input.EndTime)
 		argID++
 	}
+	if input.PlaceName != nil {
+		setParts = append(setParts, fmt.Sprintf("place_name = $%d", argID))
+		args = append(args, *input.PlaceName)
+		argID++
+	}
+	if input.PlaceLink != nil {
+		setParts = append(setParts, fmt.Sprintf("place_link = $%d", argID))
+		args = append(args, *input.PlaceLink)
+		argID++
+	}
 	if input.CompanyID != nil {
 		var isMember bool
 		err := r.pool.QueryRow(ctx,

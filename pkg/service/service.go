@@ -16,18 +16,22 @@ type Service struct {
 	Availability
 	Idea
 	Chat
+	Notification
 }
 
 func NewService(repos *repository.Repository, cfg config.Config) *Service {
 	ideaGenerator := NewIdeaGenerator(cfg)
+	pushSender := NewAPNSPushSender(cfg, repos.Notification)
+	notificationService := NewNotificationService(repos.Notification, pushSender)
 
 	return &Service{
 		Authorization: NewAuthService(repos.Authorization),
 		Company:       NewCompanyService(repos.Company),
-		Event:         NewEventService(repos.Event, repos.Availability),
+		Event:         NewEventService(repos.Event, repos.Availability, notificationService),
 		Availability:  NewAvailabilityService(repos.Availability),
 		Idea:          NewIdeaService(repos.Idea, repos.Company, ideaGenerator),
-		Chat:          NewChatService(repos.Chat),
+		Chat:          NewChatService(repos.Chat, notificationService),
+		Notification:  notificationService,
 	}
 }
 
@@ -108,4 +112,10 @@ type Chat interface {
 	DeleteCompanyMessage(companyID int64, messageID int64, userID int64) error
 	MarkCompanyMessagesRead(companyID int64, userID int64, input model.ChatMarkReadInput) (model.ChatReadResult, error)
 	GetCompanyUnreadCount(companyID int64, userID int64) (int64, error)
+}
+
+type Notification interface {
+	RegisterPushToken(userID int64, input model.PushTokenRegisterInput) error
+	DeletePushToken(userID int64, token string) error
+	Dispatch(notification model.PushNotification)
 }

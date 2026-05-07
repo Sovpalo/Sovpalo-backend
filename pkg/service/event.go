@@ -2,6 +2,7 @@ package service
 
 import (
 	"errors"
+	"fmt"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -13,12 +14,14 @@ import (
 type EventService struct {
 	repo             repository.Event
 	availabilityRepo repository.Availability
+	notifications    *NotificationService
 }
 
-func NewEventService(repo repository.Event, availabilityRepo repository.Availability) *EventService {
+func NewEventService(repo repository.Event, availabilityRepo repository.Availability, notifications *NotificationService) *EventService {
 	return &EventService{
 		repo:             repo,
 		availabilityRepo: availabilityRepo,
+		notifications:    notifications,
 	}
 }
 
@@ -48,6 +51,8 @@ func (s *EventService) CreateEvent(userID int64, input model.EventCreateInput, p
 		PhotoURL:    input.PhotoURL,
 		StartTime:   input.StartTime,
 		EndTime:     input.EndTime,
+		PlaceName:   input.PlaceName,
+		PlaceLink:   input.PlaceLink,
 	}
 	id, err := s.repo.CreateEvent(event)
 	if err != nil {
@@ -56,6 +61,7 @@ func (s *EventService) CreateEvent(userID int64, input model.EventCreateInput, p
 		}
 		return 0, err
 	}
+	s.dispatchEventPush(id, userID, event, "Назначена встреча", fmt.Sprintf("Новая встреча: %s", event.Title), "event_created")
 	return id, nil
 }
 
@@ -153,6 +159,12 @@ func (s *EventService) UpdateEvent(eventID int64, userID int64, input model.Even
 	if input.PhotoURL != nil && *input.PhotoURL == "" {
 		return errors.New("photo_url cannot be empty")
 	}
+	if input.PlaceName != nil && *input.PlaceName == "" {
+		return errors.New("place_name cannot be empty")
+	}
+	if input.PlaceLink != nil && *input.PlaceLink == "" {
+		return errors.New("place_link cannot be empty")
+	}
 
 	event, err := s.repo.GetEvent(eventID, userID)
 	if err != nil {
@@ -175,11 +187,61 @@ func (s *EventService) UpdateEvent(eventID int64, userID int64, input model.Even
 		return err
 	}
 
+	if eventNotificationFieldsChanged(input) {
+		updatedEvent := event
+		if input.StartTime != nil {
+			updatedEvent.StartTime = input.StartTime
+		}
+		if input.EndTime != nil {
+			updatedEvent.EndTime = input.EndTime
+		}
+		if input.PlaceName != nil {
+			updatedEvent.PlaceName = input.PlaceName
+		}
+		if input.PlaceLink != nil {
+			updatedEvent.PlaceLink = input.PlaceLink
+		}
+		s.dispatchEventPush(eventID, userID, updatedEvent, "Встреча изменена", fmt.Sprintf("Изменились время или место встречи: %s", updatedEvent.Title), "event_updated")
+	}
+
 	if newPhotoURL != "" && event.PhotoURL != nil && *event.PhotoURL != newPhotoURL {
 		_ = removeAvatarByURL(*event.PhotoURL)
 	}
 
 	return nil
+}
+
+func (s *EventService) dispatchEventPush(eventID int64, actorID int64, event model.Event, title string, body string, notificationType string) {
+	if s.notifications == nil || s.availabilityRepo == nil || event.CompanyID == nil {
+		return
+	}
+	recipients, err := s.availabilityRepo.ListCompanyMemberIDs(*event.CompanyID)
+	if err != nil {
+		return
+	}
+	relatedType := "event"
+	for _, userID := range recipients {
+		if userID == actorID {
+			continue
+		}
+		notification := model.PushNotification{
+			UserID:            userID,
+			Type:              notificationType,
+			Title:             title,
+			Message:           body,
+			RelatedEntityType: &relatedType,
+			RelatedEntityID:   &eventID,
+			Data: map[string]string{
+				"event_id":   fmt.Sprintf("%d", eventID),
+				"company_id": fmt.Sprintf("%d", *event.CompanyID),
+			},
+		}
+		go s.notifications.Dispatch(notification)
+	}
+}
+
+func eventNotificationFieldsChanged(input model.EventUpdateInput) bool {
+	return input.StartTime != nil || input.EndTime != nil || input.PlaceName != nil || input.PlaceLink != nil
 }
 
 func (s *EventService) DeleteEvent(eventID int64, userID int64) error {

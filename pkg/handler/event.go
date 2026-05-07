@@ -18,6 +18,8 @@ type eventInput struct {
 	PhotoURL    *string `json:"photo_url,omitempty"`
 	StartTime   string  `json:"start_time"`
 	EndTime     *string `json:"end_time,omitempty"`
+	PlaceName   *string `json:"place_name,omitempty"`
+	PlaceLink   *string `json:"place_link,omitempty"`
 	CompanyID   *int64  `json:"company_id,omitempty"`
 }
 
@@ -70,6 +72,14 @@ func parseEventCreateInput(c *gin.Context) (model.EventCreateInput, string, []by
 		value := c.PostForm("photo_url")
 		input.PhotoURL = &value
 	}
+	if _, ok := c.Request.MultipartForm.Value["place_name"]; ok {
+		value := c.PostForm("place_name")
+		input.PlaceName = &value
+	}
+	if _, ok := c.Request.MultipartForm.Value["place_link"]; ok {
+		value := c.PostForm("place_link")
+		input.PlaceLink = &value
+	}
 	if _, ok := c.Request.MultipartForm.Value["company_id"]; ok {
 		value := c.PostForm("company_id")
 		companyID, err := strconv.ParseInt(value, 10, 64)
@@ -117,6 +127,8 @@ func buildEventCreateInput(input eventInput) (model.EventCreateInput, error) {
 		PhotoURL:    input.PhotoURL,
 		StartTime:   &startTime,
 		EndTime:     endTime,
+		PlaceName:   input.PlaceName,
+		PlaceLink:   input.PlaceLink,
 		CompanyID:   input.CompanyID,
 	}, nil
 }
@@ -218,6 +230,14 @@ func parseEventUpdateInput(c *gin.Context) (model.EventUpdateInput, string, []by
 		value := c.PostForm("photo_url")
 		updateInput.PhotoURL = &value
 	}
+	if _, ok := c.Request.MultipartForm.Value["place_name"]; ok {
+		value := c.PostForm("place_name")
+		updateInput.PlaceName = &value
+	}
+	if _, ok := c.Request.MultipartForm.Value["place_link"]; ok {
+		value := c.PostForm("place_link")
+		updateInput.PlaceLink = &value
+	}
 	if _, ok := c.Request.MultipartForm.Value["company_id"]; ok {
 		value := c.PostForm("company_id")
 		companyID, err := strconv.ParseInt(value, 10, 64)
@@ -278,6 +298,8 @@ func buildEventUpdateInput(input eventInput) (model.EventUpdateInput, error) {
 		CompanyID:   input.CompanyID,
 		Description: input.Description,
 		PhotoURL:    input.PhotoURL,
+		PlaceName:   input.PlaceName,
+		PlaceLink:   input.PlaceLink,
 	}
 	if input.Title != "" {
 		updateInput.Title = &input.Title

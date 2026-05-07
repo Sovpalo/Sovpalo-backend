@@ -34,11 +34,12 @@ const (
 )
 
 type ChatService struct {
-	repo repository.Chat
+	repo          repository.Chat
+	notifications *NotificationService
 }
 
-func NewChatService(repo repository.Chat) *ChatService {
-	return &ChatService{repo: repo}
+func NewChatService(repo repository.Chat, notifications *NotificationService) *ChatService {
+	return &ChatService{repo: repo, notifications: notifications}
 }
 
 func (s *ChatService) ListCompanyMessages(companyID int64, userID int64, beforeMessageID int64, limit int) ([]model.ChatMessageView, error) {
@@ -56,7 +57,12 @@ func (s *ChatService) CreateCompanyTextMessage(companyID int64, userID int64, in
 	if text == "" {
 		return model.ChatMessageView{}, ErrChatMessageTextRequired
 	}
-	return s.repo.CreateCompanyChatMessage(companyID, userID, &text, nil)
+	message, err := s.repo.CreateCompanyChatMessage(companyID, userID, &text, nil)
+	if err != nil {
+		return model.ChatMessageView{}, err
+	}
+	s.dispatchChatMessagePush(companyID, userID, message, "Новое сообщение", text)
+	return message, nil
 }
 
 func (s *ChatService) CreateCompanyMediaMessage(companyID int64, userID int64, files []ChatUploadFile) (model.ChatMessageView, error) {
@@ -89,7 +95,35 @@ func (s *ChatService) CreateCompanyMediaMessage(companyID int64, userID int64, f
 		return model.ChatMessageView{}, err
 	}
 
+	s.dispatchChatMessagePush(companyID, userID, message, "Новое медиа", "В чат отправили фото или видео")
 	return message, nil
+}
+
+func (s *ChatService) dispatchChatMessagePush(companyID int64, senderID int64, message model.ChatMessageView, title string, body string) {
+	if s.notifications == nil {
+		return
+	}
+	recipients, err := s.repo.ListCompanyChatRecipientIDs(companyID, senderID)
+	if err != nil {
+		return
+	}
+	relatedType := "company_chat_message"
+	messageID := message.ID
+	for _, userID := range recipients {
+		notification := model.PushNotification{
+			UserID:            userID,
+			Type:              "chat_message",
+			Title:             title,
+			Message:           body,
+			RelatedEntityType: &relatedType,
+			RelatedEntityID:   &messageID,
+			Data: map[string]string{
+				"company_id": fmt.Sprintf("%d", companyID),
+				"message_id": fmt.Sprintf("%d", message.ID),
+			},
+		}
+		go s.notifications.Dispatch(notification)
+	}
 }
 
 func (s *ChatService) DeleteCompanyMessage(companyID int64, messageID int64, userID int64) error {

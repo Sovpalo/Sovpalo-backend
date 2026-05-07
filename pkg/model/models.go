@@ -199,6 +199,25 @@ type Notification struct {
 	CreatedAt         time.Time `db:"created_at" json:"created_at"`
 }
 
+type PushDeviceToken struct {
+	ID        int64     `db:"id" json:"id"`
+	UserID    int64     `db:"user_id" json:"user_id"`
+	Token     string    `db:"token" json:"token"`
+	Platform  string    `db:"platform" json:"platform"`
+	CreatedAt time.Time `db:"created_at" json:"created_at"`
+	UpdatedAt time.Time `db:"updated_at" json:"updated_at"`
+}
+
+type PushNotification struct {
+	UserID            int64
+	Type              string
+	Title             string
+	Message           string
+	RelatedEntityType *string
+	RelatedEntityID   *int64
+	Data              map[string]string
+}
+
 type UserSession struct {
 	ID               int64     `db:"id" json:"id"`
 	UserID           int64     `db:"user_id" json:"user_id"`

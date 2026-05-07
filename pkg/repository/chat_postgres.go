@@ -156,6 +156,33 @@ func (r *ChatPostgres) CreateCompanyChatMessage(companyID int64, userID int64, t
 	return message, nil
 }
 
+func (r *ChatPostgres) ListCompanyChatRecipientIDs(companyID int64, senderID int64) ([]int64, error) {
+	ctx := context.Background()
+	if err := r.ensureCompanyMember(ctx, companyID, senderID); err != nil {
+		return nil, err
+	}
+
+	rows, err := r.pool.Query(ctx, `
+		SELECT user_id
+		FROM company_members
+		WHERE company_id = $1 AND user_id <> $2
+	`, companyID, senderID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	recipients := []int64{}
+	for rows.Next() {
+		var userID int64
+		if err := rows.Scan(&userID); err != nil {
+			return nil, err
+		}
+		recipients = append(recipients, userID)
+	}
+	return recipients, rows.Err()
+}
+
 func (r *ChatPostgres) DeleteCompanyChatMessage(companyID int64, messageID int64, userID int64) ([]model.ChatAttachment, error) {
 	ctx := context.Background()
 	tx, err := r.pool.Begin(ctx)

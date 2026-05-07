@@ -104,6 +104,10 @@ func normalizeErrorMessage(statusCode int, message string) string {
 		return "Availability ID must be a valid number."
 	case "invalid message id":
 		return "Message ID must be a valid number."
+	case "push token is required":
+		return "Push token is required."
+	case "push platform must be ios":
+		return "Push platform must be ios."
 	case "invalid before_id":
 		return "Field before_id must be a valid number."
 	case "invalid limit":

@@ -81,6 +81,7 @@ func TestEventServiceGetCompanyEventFeaturesReturnsCalculatedValues(t *testing.T
 				{UserID: 3, StartTime: start.Add(-30 * time.Minute), EndTime: end.Add(-time.Minute)},
 			},
 		},
+		nil,
 	)
 
 	features, err := svc.GetCompanyEventFeatures(companyID, 10, 1, time.Date(2026, 4, 30, 12, 0, 0, 0, time.UTC))
@@ -147,6 +148,7 @@ func TestEventServiceGetCompanyEventFeaturesHandlesInstantMeeting(t *testing.T) 
 				{UserID: 10, StartTime: start.Add(-time.Minute), EndTime: start},
 			},
 		},
+		nil,
 	)
 
 	features, err := svc.GetCompanyEventFeatures(companyID, 11, 10, start.Add(-2*time.Hour))
@@ -170,6 +172,7 @@ func TestEventServiceGetCompanyEventFeaturesPropagatesRepoError(t *testing.T) {
 	svc := NewEventService(
 		eventRepoStub{eventErr: expectedErr},
 		availabilityRepoStub{},
+		nil,
 	)
 
 	_, err := svc.GetCompanyEventFeatures(1, 1, 1, time.Now())

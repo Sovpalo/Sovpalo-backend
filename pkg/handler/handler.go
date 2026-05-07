@@ -57,6 +57,10 @@ func (h *Handler) InitRoutes() *gin.Engine {
 		auth.DELETE("/me/avatar", h.userIdentity, h.deleteCurrentUserAvatar)
 		// удаление текущего пользователя
 		auth.DELETE("/me", h.userIdentity, h.deleteCurrentUser)
+		// регистрация APNs device token текущего пользователя
+		auth.POST("/me/push-tokens", h.userIdentity, h.registerPushToken)
+		// удаление APNs device token текущего пользователя
+		auth.DELETE("/me/push-tokens", h.userIdentity, h.deletePushToken)
 	}
 
 	companies := router.Group("/companies", h.userIdentity)
