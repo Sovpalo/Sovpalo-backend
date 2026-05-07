@@ -34,6 +34,7 @@ type Authorization interface {
 	CreateUser(user model.User) (int, error)
 	GetUser(email, password string) (model.User, error)
 	GetUserByEmail(email string) (model.User, error)
+	GetUserByTelegramID(telegramID int64) (model.User, error)
 	GetUserByID(userID int64) (model.User, error)
 	UpdateUserAvatar(userID int64, avatarURL *string) error
 	DeleteUser(userID int64) error

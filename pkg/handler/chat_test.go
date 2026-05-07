@@ -52,7 +52,10 @@ func (s authStub) SendCodeToEmail(to string, code string) error         { return
 func (s authStub) GenerateCode() string                                 { return "" }
 func (s authStub) GenerateToken(email, password string) (string, error) { return "", nil }
 func (s authStub) SignIn(input model.SignInInput) (string, error)       { return "", nil }
-func (s authStub) StartRegistration(input model.SignUpInput) error      { return nil }
+func (s authStub) SignInTelegram(input model.TelegramSignInInput) (string, error) {
+	return "", nil
+}
+func (s authStub) StartRegistration(input model.SignUpInput) error { return nil }
 func (s authStub) VerifyRegistration(input model.SignUpVerifyInput) (string, error) {
 	return "", nil
 }

@@ -130,6 +130,10 @@ func (r *AuthRepository) GetUserByEmail(email string) (model.User, error) {
 	return r.postgres.GetUserByEmail(email)
 }
 
+func (r *AuthRepository) GetUserByTelegramID(telegramID int64) (model.User, error) {
+	return r.postgres.GetUserByTelegramID(telegramID)
+}
+
 func (r *AuthRepository) GetUserByID(userID int64) (model.User, error) {
 	return r.postgres.GetUserByID(userID)
 }
@@ -153,25 +157,32 @@ func (r *AuthRepository) DeleteUser(userID int64) error {
 	}
 
 	ctx := context.Background()
-	_ = r.cache.Del(ctx,
-		userExistsPrefix+strings.ToLower(user.Email),
-		usernameExistsPrefix+strings.ToLower(user.Username),
-	).Err()
-
-	loginPattern := fmt.Sprintf("%s%s:*", userLoginPrefix, strings.ToLower(user.Email))
-	loginIter := r.cache.Scan(ctx, 0, loginPattern, 100).Iterator()
-	for loginIter.Next(ctx) {
-		_ = r.cache.Del(ctx, loginIter.Val()).Err()
+	cacheKeys := []string{
+		usernameExistsPrefix + strings.ToLower(user.Username),
 	}
-	if loginIter.Err() != nil {
-		return loginIter.Err()
+	if user.Email != nil && *user.Email != "" {
+		cacheKeys = append(cacheKeys, userExistsPrefix+strings.ToLower(*user.Email))
+	}
+	_ = r.cache.Del(ctx, cacheKeys...).Err()
+
+	if user.Email != nil && *user.Email != "" {
+		loginPattern := fmt.Sprintf("%s%s:*", userLoginPrefix, strings.ToLower(*user.Email))
+		loginIter := r.cache.Scan(ctx, 0, loginPattern, 100).Iterator()
+		for loginIter.Next(ctx) {
+			_ = r.cache.Del(ctx, loginIter.Val()).Err()
+		}
+		if loginIter.Err() != nil {
+			return loginIter.Err()
+		}
 	}
 
-	for _, challengeType := range []model.AuthChallengeType{
-		model.AuthChallengeTypeSignUp,
-		model.AuthChallengeTypePasswordReset,
-	} {
-		_ = r.cache.Del(ctx, authChallengeKey(challengeType, user.Email)).Err()
+	if user.Email != nil && *user.Email != "" {
+		for _, challengeType := range []model.AuthChallengeType{
+			model.AuthChallengeTypeSignUp,
+			model.AuthChallengeTypePasswordReset,
+		} {
+			_ = r.cache.Del(ctx, authChallengeKey(challengeType, *user.Email)).Err()
+		}
 	}
 
 	return nil
@@ -257,12 +268,14 @@ func (r *AuthRepository) cacheUser(user model.User, id int64) {
 	}
 
 	ctx := context.Background()
-	existsKey := userExistsPrefix + strings.ToLower(user.Email)
 	usernameKey := usernameExistsPrefix + strings.ToLower(user.Username)
-	loginKey := fmt.Sprintf("%s%s:%s", userLoginPrefix, strings.ToLower(user.Email), user.Password)
-	_ = r.cache.Set(ctx, existsKey, "1", r.cacheTTL).Err()
 	_ = r.cache.Set(ctx, usernameKey, "1", r.cacheTTL).Err()
-	_ = r.cache.Set(ctx, loginKey, strconv.FormatInt(id, 10), r.cacheTTL).Err()
+	if user.Email != nil && *user.Email != "" {
+		existsKey := userExistsPrefix + strings.ToLower(*user.Email)
+		loginKey := fmt.Sprintf("%s%s:%s", userLoginPrefix, strings.ToLower(*user.Email), user.Password)
+		_ = r.cache.Set(ctx, existsKey, "1", r.cacheTTL).Err()
+		_ = r.cache.Set(ctx, loginKey, strconv.FormatInt(id, 10), r.cacheTTL).Err()
+	}
 }
 
 func authChallengeKey(challengeType model.AuthChallengeType, email string) string {

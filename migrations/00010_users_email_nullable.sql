@@ -1,0 +1,17 @@
+-- +goose Up
+BEGIN;
+
+ALTER TABLE users
+    ALTER COLUMN email DROP NOT NULL;
+
+COMMIT;
+
+-- +goose Down
+BEGIN;
+
+DELETE FROM users WHERE email IS NULL;
+
+ALTER TABLE users
+    ALTER COLUMN email SET NOT NULL;
+
+COMMIT;

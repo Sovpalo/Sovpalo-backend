@@ -137,6 +137,10 @@ func normalizeErrorMessage(statusCode int, message string) string {
 		return "Temporary error while processing the verification code. Please try again."
 	case "invalid email or password":
 		return "Incorrect email or password."
+	case "invalid telegram auth data":
+		return "Telegram authentication data is invalid."
+	case "telegram auth data expired":
+		return "Telegram authentication data has expired. Please try again."
 	case "pending registration not found":
 		return "Verification code was not requested or has already expired."
 	case "verification code expired":
@@ -227,6 +231,10 @@ func normalizeErrorMessage(statusCode int, message string) string {
 
 	if strings.Contains(message, "JWT_SECRET not set") {
 		return "Authentication service is temporarily unavailable."
+	}
+
+	if strings.Contains(message, "TELEGRAM_BOT_TOKEN not set") {
+		return "Telegram authentication is temporarily unavailable."
 	}
 
 	if strings.Contains(message, "PASSWORD_SALT not set") {

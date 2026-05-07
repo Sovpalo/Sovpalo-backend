@@ -56,6 +56,8 @@ func mapRegistrationError(c *gin.Context, err error) {
 		newErrorResponse(c, http.StatusBadRequest, err.Error())
 	case errors.Is(err, service.ErrInvalidCredentials):
 		newErrorResponse(c, http.StatusUnauthorized, err.Error())
+	case errors.Is(err, service.ErrInvalidTelegramAuth), errors.Is(err, service.ErrTelegramAuthExpired):
+		newErrorResponse(c, http.StatusUnauthorized, err.Error())
 	case errors.Is(err, service.ErrUserAlreadyExists), errors.Is(err, service.ErrUsernameAlreadyExists):
 		newErrorResponse(c, http.StatusBadRequest, err.Error())
 	case errors.Is(err, service.ErrUserNotFound):

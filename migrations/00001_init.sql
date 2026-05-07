@@ -3,7 +3,7 @@ BEGIN;
 
 CREATE TABLE users (
     id SERIAL PRIMARY KEY,
-    email VARCHAR(255) UNIQUE NOT NULL,
+    email VARCHAR(255) UNIQUE,
     telegram_id BIGINT UNIQUE,
     username VARCHAR(100) UNIQUE NOT NULL,
     avatar_url TEXT,

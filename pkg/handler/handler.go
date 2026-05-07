@@ -41,6 +41,8 @@ func (h *Handler) InitRoutes() *gin.Engine {
 		auth.POST("/sign-up/resend", h.resendSignUpCode)
 		// старт входа: проверка пароля и отправка кода на email
 		auth.POST("/sign-in", h.signIn)
+		// вход через Telegram Login Widget / WebApp init data
+		auth.POST("/telegram/sign-in", h.telegramSignIn)
 		// запуск восстановления пароля
 		auth.POST("/password/forgot", h.forgotPassword)
 		// подтверждение кода и установка нового пароля

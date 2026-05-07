@@ -44,6 +44,7 @@ type Authorization interface {
 	GenerateCode() string
 	GenerateToken(email, password string) (string, error)
 	SignIn(input model.SignInInput) (string, error)
+	SignInTelegram(input model.TelegramSignInInput) (string, error)
 	StartRegistration(input model.SignUpInput) error
 	VerifyRegistration(input model.SignUpVerifyInput) (string, error)
 	ResendRegistrationCode(email string) error

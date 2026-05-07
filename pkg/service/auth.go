@@ -2,8 +2,11 @@ package service
 
 import (
 	"context"
+	"crypto/hmac"
 	"crypto/rand"
 	"crypto/sha1"
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"io/fs"
@@ -30,11 +33,16 @@ var (
 	ErrPendingRegistrationNotFound = errors.New("pending registration not found")
 	ErrVerificationCodeExpired     = errors.New("verification code expired")
 	ErrIncorrectVerificationCode   = errors.New("incorrect verification code")
+	ErrInvalidTelegramAuth         = errors.New("invalid telegram auth data")
+	ErrTelegramAuthExpired         = errors.New("telegram auth data expired")
 	ErrAvatarTooLarge              = errors.New("avatar file is too large")
 	ErrAvatarInvalidType           = errors.New("avatar must be a png, jpeg, webp or gif image")
 )
 
-const maxAvatarSize = 5 << 20
+const (
+	maxAvatarSize      = 5 << 20
+	telegramAuthMaxAge = 24 * time.Hour
+)
 
 type AuthService struct {
 	repo         repository.Authorization
@@ -98,6 +106,7 @@ func (s *AuthService) GetProfile(userID int64) (model.UserProfile, error) {
 		Email:     user.Email,
 		Username:  user.Username,
 		AvatarURL: user.AvatarURL,
+		Providers: user.Providers,
 	}, nil
 }
 
@@ -131,6 +140,7 @@ func (s *AuthService) UpdateAvatar(userID int64, fileName string, fileData []byt
 		Email:     user.Email,
 		Username:  user.Username,
 		AvatarURL: &avatarURL,
+		Providers: user.Providers,
 	}, nil
 }
 
@@ -155,8 +165,9 @@ func (s *AuthService) DeleteAvatar(userID int64) (model.UserProfile, error) {
 	}
 
 	return model.UserProfile{
-		Email:    user.Email,
-		Username: user.Username,
+		Email:     user.Email,
+		Username:  user.Username,
+		Providers: user.Providers,
 	}, nil
 }
 
@@ -316,6 +327,37 @@ func (s *AuthService) SignIn(input model.SignInInput) (string, error) {
 	return s.generateTokenForUser(input.Email, passwordHash)
 }
 
+func (s *AuthService) SignInTelegram(input model.TelegramSignInInput) (string, error) {
+	if err := s.validateTelegramAuth(input); err != nil {
+		return "", err
+	}
+
+	user, err := s.repo.GetUserByTelegramID(input.ID)
+	if err != nil {
+		if !errors.Is(err, pgx.ErrNoRows) {
+			return "", err
+		}
+
+		username, usernameErr := s.generateTelegramUsername(input)
+		if usernameErr != nil {
+			return "", usernameErr
+		}
+
+		telegramID := input.ID
+		userID, createErr := s.repo.CreateUser(model.User{
+			TelegramID: &telegramID,
+			Username:   username,
+		})
+		if createErr != nil {
+			return "", createErr
+		}
+
+		return s.generateTokenByUserID(int64(userID))
+	}
+
+	return s.generateTokenByUserID(user.ID)
+}
+
 func (s *AuthService) generatePasswordHash(password string) (string, error) {
 	if s.passwordSalt == "" {
 		return "", errors.New("PASSWORD_SALT not set")
@@ -368,7 +410,7 @@ func (s *AuthService) VerifyRegistration(input model.SignUpVerifyInput) (string,
 	}
 
 	if _, err := s.repo.CreateUser(model.User{
-		Email:    challenge.Email,
+		Email:    &challenge.Email,
 		Username: challenge.Username,
 		Password: challenge.PasswordHash,
 	}); err != nil {
@@ -430,25 +472,29 @@ func (s *AuthService) PendingRegistrationTTL() time.Duration {
 	return s.pendingTTL
 }
 
-func (s *AuthService) generateTokenForUser(email, passwordHash string) (string, error) {
+func (s *AuthService) generateTokenByUserID(userID int64) (string, error) {
 	if len(s.jwtSecret) == 0 {
 		return "", errors.New("JWT_SECRET not set")
 	}
 
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, &tokenClaims{
+		StandardClaims: jwt.StandardClaims{
+			ExpiresAt: time.Now().Add(720 * time.Hour).Unix(),
+			IssuedAt:  time.Now().Unix(),
+		},
+		UserId: int(userID),
+	})
+
+	return token.SignedString(s.jwtSecret)
+}
+
+func (s *AuthService) generateTokenForUser(email, passwordHash string) (string, error) {
 	user, err := s.repo.GetUser(email, passwordHash)
 	if err != nil {
 		return "", err
 	}
 
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, &tokenClaims{
-		jwt.StandardClaims{
-			ExpiresAt: time.Now().Add(720 * time.Hour).Unix(),
-			IssuedAt:  time.Now().Unix(),
-		},
-		int(user.ID),
-	})
-
-	return token.SignedString(s.jwtSecret)
+	return s.generateTokenByUserID(user.ID)
 }
 
 func (s *AuthService) ensureEmailAndUsernameAvailable(email, username string) error {
@@ -559,4 +605,147 @@ func validatePassword(password string) error {
 	}
 
 	return nil
+}
+
+func (s *AuthService) validateTelegramAuth(input model.TelegramSignInInput) error {
+	botToken := os.Getenv("TELEGRAM_BOT_TOKEN")
+	if botToken == "" {
+		return errors.New("TELEGRAM_BOT_TOKEN not set")
+	}
+
+	authTime := time.Unix(input.AuthDate, 0)
+	if time.Since(authTime) > telegramAuthMaxAge {
+		return ErrTelegramAuthExpired
+	}
+
+	if time.Until(authTime) > 30*time.Second {
+		return ErrInvalidTelegramAuth
+	}
+
+	expectedHash := telegramAuthHash(input, botToken)
+	if !hmac.Equal([]byte(expectedHash), []byte(input.Hash)) {
+		return ErrInvalidTelegramAuth
+	}
+
+	return nil
+}
+
+func telegramAuthHash(input model.TelegramSignInInput, botToken string) string {
+	payload := telegramDataCheckString(input)
+	secret := sha256.Sum256([]byte(botToken))
+	mac := hmac.New(sha256.New, secret[:])
+	mac.Write([]byte(payload))
+	return hex.EncodeToString(mac.Sum(nil))
+}
+
+func telegramDataCheckString(input model.TelegramSignInInput) string {
+	pairs := []string{
+		fmt.Sprintf("auth_date=%d", input.AuthDate),
+		fmt.Sprintf("first_name=%s", input.FirstName),
+		fmt.Sprintf("id=%d", input.ID),
+	}
+
+	if input.LastName != nil && *input.LastName != "" {
+		pairs = append(pairs, fmt.Sprintf("last_name=%s", *input.LastName))
+	}
+	if input.PhotoURL != nil && *input.PhotoURL != "" {
+		pairs = append(pairs, fmt.Sprintf("photo_url=%s", *input.PhotoURL))
+	}
+	if input.Username != nil && *input.Username != "" {
+		pairs = append(pairs, fmt.Sprintf("username=%s", *input.Username))
+	}
+
+	return strings.Join(pairs, "\n")
+}
+
+func (s *AuthService) generateTelegramUsername(input model.TelegramSignInInput) (string, error) {
+	candidates := []string{}
+
+	if input.Username != nil {
+		if username := sanitizeTelegramUsername(*input.Username); username != "" {
+			candidates = append(candidates, username)
+		}
+	}
+
+	fullName := strings.TrimSpace(input.FirstName)
+	if input.LastName != nil && *input.LastName != "" {
+		fullName = strings.TrimSpace(fullName + "_" + *input.LastName)
+	}
+	if username := sanitizeTelegramUsername(fullName); username != "" {
+		candidates = append(candidates, username)
+	}
+
+	candidates = append(candidates, fmt.Sprintf("tg%d", input.ID))
+
+	for _, candidate := range candidates {
+		username, err := s.ensureUniqueUsername(candidate, input.ID)
+		if err != nil {
+			return "", err
+		}
+		if username != "" {
+			return username, nil
+		}
+	}
+
+	return "", ErrUsernameAlreadyExists
+}
+
+func (s *AuthService) ensureUniqueUsername(base string, telegramID int64) (string, error) {
+	base = sanitizeTelegramUsername(base)
+	if base == "" {
+		base = fmt.Sprintf("tg%d", telegramID)
+	}
+
+	exists, err := s.repo.UsernameExists(base)
+	if err != nil {
+		return "", err
+	}
+	if !exists {
+		return base, nil
+	}
+
+	for i := 1; i <= 20; i++ {
+		candidate := fmt.Sprintf("%s_%d", base, i)
+		exists, err = s.repo.UsernameExists(candidate)
+		if err != nil {
+			return "", err
+		}
+		if !exists {
+			return candidate, nil
+		}
+	}
+
+	return "", nil
+}
+
+func sanitizeTelegramUsername(value string) string {
+	value = strings.ToLower(strings.TrimSpace(value))
+	if value == "" {
+		return ""
+	}
+
+	var builder strings.Builder
+	lastUnderscore := false
+	for _, ch := range value {
+		switch {
+		case ch >= 'a' && ch <= 'z':
+			builder.WriteRune(ch)
+			lastUnderscore = false
+		case ch >= '0' && ch <= '9':
+			builder.WriteRune(ch)
+			lastUnderscore = false
+		case ch == '_':
+			if !lastUnderscore {
+				builder.WriteRune(ch)
+				lastUnderscore = true
+			}
+		case ch == ' ' || ch == '-' || ch == '.':
+			if !lastUnderscore {
+				builder.WriteByte('_')
+				lastUnderscore = true
+			}
+		}
+	}
+
+	return strings.Trim(builder.String(), "_")
 }
