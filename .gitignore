@@ -4,3 +4,9 @@
 .DS_Store.env
 .env
 .DS_Store
+
+docs/build_pmi_docx.py
+docs/mobile-auth.md
+docs/mobile-ideas-llm.md
+docs/pmi_source.html
+scripts/

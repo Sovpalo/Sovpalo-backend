@@ -246,9 +246,16 @@ func (r *EventPostgres) UpdateEvent(eventID int64, userID int64, input model.Eve
 
 	setParts = append(setParts, "updated_at = NOW()")
 	query := fmt.Sprintf(
-		"UPDATE events SET %s WHERE id = $%d AND created_by = $%d",
+		`UPDATE events SET %s WHERE id = $%d AND (
+			(events.company_id IS NOT NULL AND EXISTS (
+				SELECT 1 FROM company_members cm
+				WHERE cm.company_id = events.company_id AND cm.user_id = $%d
+			))
+			OR (events.company_id IS NULL AND events.created_by = $%d)
+		)`,
 		strings.Join(setParts, ", "),
 		argID,
+		argID+1,
 		argID+1,
 	)
 	args = append(args, eventID, userID)
@@ -265,7 +272,16 @@ func (r *EventPostgres) UpdateEvent(eventID int64, userID int64, input model.Eve
 
 func (r *EventPostgres) DeleteEvent(eventID int64, userID int64) error {
 	ctx := context.Background()
-	query := "DELETE FROM events WHERE id = $1 AND created_by = $2"
+	query := `
+		DELETE FROM events
+		WHERE id = $1 AND (
+			(events.company_id IS NOT NULL AND EXISTS (
+				SELECT 1 FROM company_members cm
+				WHERE cm.company_id = events.company_id AND cm.user_id = $2
+			))
+			OR (events.company_id IS NULL AND events.created_by = $2)
+		)
+	`
 	tag, err := r.pool.Exec(ctx, query, eventID, userID)
 	if err != nil {
 		return err
