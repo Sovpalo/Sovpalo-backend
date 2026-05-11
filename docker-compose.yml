@@ -81,7 +81,11 @@ services:
       YANDEX_MODEL: ${YANDEX_MODEL:-yandexgpt/latest}
     ports:
       - "8000:8000"
+    volumes:
+      # Иначе при каждом пересоздании контейнера теряются локальные файлы (аватарки, фото встреч/идей, медиа чата).
+      - uploads-data:/app/uploads
     restart: unless-stopped
 
 volumes:
   db-data:
+  uploads-data:
