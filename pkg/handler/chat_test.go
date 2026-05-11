@@ -130,6 +130,36 @@ func TestListCompanyChatMessagesReturnsForbiddenForNonMember(t *testing.T) {
 	}
 }
 
+func TestCompanyChatWebSocketProbeReturnsNoContentWhenAuthenticated(t *testing.T) {
+	svc := &service.Service{
+		Authorization: authStub{
+			parseToken: func(token string) (int, error) {
+				if token == "member-token" {
+					return 1, nil
+				}
+				return 0, errors.New("bad token")
+			},
+		},
+		Chat: chatStub{
+			unreadFn: func(companyID int64, userID int64) (int64, error) {
+				return 0, nil
+			},
+		},
+	}
+
+	h := NewHandler(healthStub{}, svc)
+	router := h.InitRoutes()
+
+	req := httptest.NewRequest(http.MethodGet, "/companies/9001/chat/ws?token=member-token", nil)
+	w := httptest.NewRecorder()
+
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusNoContent {
+		t.Fatalf("expected status %d, got %d, body=%s", http.StatusNoContent, w.Code, w.Body.String())
+	}
+}
+
 func TestCompanyChatWebSocketMessageCreatedIsPersonalizedForRecipient(t *testing.T) {
 	readAt := time.Now().UTC()
 	svc := &service.Service{

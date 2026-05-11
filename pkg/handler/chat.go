@@ -250,6 +250,11 @@ func (h *Handler) companyChatWebSocket(c *gin.Context) {
 		return
 	}
 
+	if !websocket.IsWebSocketUpgrade(c.Request) {
+		c.Status(http.StatusNoContent)
+		return
+	}
+
 	conn, err := chatUpgrader.Upgrade(c.Writer, c.Request, nil)
 	if err != nil {
 		return
