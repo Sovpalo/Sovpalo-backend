@@ -188,7 +188,11 @@ func (r *IdeaPostgres) UpdateCompanyIdea(companyID int64, userID int64, ideaID i
 	}
 	if input.PhotoURL != nil {
 		setParts = append(setParts, fmt.Sprintf("photo_url = $%d", argID))
-		args = append(args, *input.PhotoURL)
+		var photoArg interface{} = *input.PhotoURL
+		if *input.PhotoURL == "" {
+			photoArg = nil
+		}
+		args = append(args, photoArg)
 		argID++
 	}
 

@@ -110,9 +110,7 @@ func (s *IdeaService) UpdateCompanyIdea(companyID int64, userID int64, ideaID in
 	if input.Description != nil && *input.Description == "" {
 		return errors.New("description cannot be empty")
 	}
-	if input.PhotoURL != nil && *input.PhotoURL == "" {
-		return errors.New("photo_url cannot be empty")
-	}
+	clearPhoto := input.PhotoURL != nil && *input.PhotoURL == "" && len(photoFileData) == 0
 
 	idea, err := s.repo.GetCompanyIdea(companyID, userID, ideaID)
 	if err != nil {
@@ -133,6 +131,10 @@ func (s *IdeaService) UpdateCompanyIdea(companyID int64, userID int64, ideaID in
 			_ = removeAvatarByURL(newPhotoURL)
 		}
 		return err
+	}
+
+	if clearPhoto && idea.PhotoURL != nil {
+		_ = removeAvatarByURL(*idea.PhotoURL)
 	}
 
 	if newPhotoURL != "" && idea.PhotoURL != nil && *idea.PhotoURL != newPhotoURL {

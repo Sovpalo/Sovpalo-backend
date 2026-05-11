@@ -199,7 +199,11 @@ func (r *EventPostgres) UpdateEvent(eventID int64, userID int64, input model.Eve
 	}
 	if input.PhotoURL != nil {
 		setParts = append(setParts, fmt.Sprintf("photo_url = $%d", argID))
-		args = append(args, *input.PhotoURL)
+		var photoArg interface{} = *input.PhotoURL
+		if *input.PhotoURL == "" {
+			photoArg = nil
+		}
+		args = append(args, photoArg)
 		argID++
 	}
 	if input.StartTime != nil {

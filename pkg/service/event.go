@@ -156,9 +156,7 @@ func (s *EventService) UpdateEvent(eventID int64, userID int64, input model.Even
 	if input.Description != nil && *input.Description == "" {
 		return errors.New("description cannot be empty")
 	}
-	if input.PhotoURL != nil && *input.PhotoURL == "" {
-		return errors.New("photo_url cannot be empty")
-	}
+	clearPhoto := input.PhotoURL != nil && *input.PhotoURL == "" && len(photoFileData) == 0
 	if input.PlaceName != nil && *input.PlaceName == "" {
 		return errors.New("place_name cannot be empty")
 	}
@@ -185,6 +183,10 @@ func (s *EventService) UpdateEvent(eventID int64, userID int64, input model.Even
 			_ = removeAvatarByURL(newPhotoURL)
 		}
 		return err
+	}
+
+	if clearPhoto && event.PhotoURL != nil {
+		_ = removeAvatarByURL(*event.PhotoURL)
 	}
 
 	if eventNotificationFieldsChanged(input) {
