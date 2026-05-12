@@ -20,6 +20,13 @@ import (
 func main() {
 	cfg := config.Load()
 
+	bootstrapCtx, bootstrapCancel := context.WithTimeout(context.Background(), 10*time.Second)
+	telegramUsername := telegram.ResolveBotUsername(bootstrapCtx, cfg)
+	bootstrapCancel()
+	if telegramUsername != "" && cfg.TelegramBotUsername == "" {
+		log.Printf("telegram bot username resolved from API: @%s", telegramUsername)
+	}
+
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
@@ -42,7 +49,7 @@ func main() {
 	healthService := service.NewHealthService(healthRepo)
 	repos := repository.NewRepository(pool, redisClient)
 	services := service.NewService(repos, cfg)
-	handlers := handler.NewHandler(healthService, services, cfg)
+	handlers := handler.NewHandler(healthService, services, cfg, telegramUsername)
 
 	botCtx, botCancel := context.WithCancel(context.Background())
 	defer botCancel()

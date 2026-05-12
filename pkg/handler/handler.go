@@ -11,18 +11,20 @@ import (
 )
 
 type Handler struct {
-	health    service.HealthService
-	services  *service.Service
-	chatHub   *chatHub
-	appConfig config.Config
+	health           service.HealthService
+	services         *service.Service
+	chatHub          *chatHub
+	appConfig        config.Config
+	telegramUsername string
 }
 
-func NewHandler(health service.HealthService, services *service.Service, appConfig config.Config) *Handler {
+func NewHandler(health service.HealthService, services *service.Service, appConfig config.Config, telegramUsername string) *Handler {
 	return &Handler{
-		health:    health,
-		services:  services,
-		chatHub:   newChatHub(),
-		appConfig: appConfig,
+		health:           health,
+		services:         services,
+		chatHub:          newChatHub(),
+		appConfig:        appConfig,
+		telegramUsername: telegramUsername,
 	}
 }
 

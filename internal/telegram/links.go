@@ -14,9 +14,22 @@ type RegisterLinks struct {
 	DeepLink   string `json:"deep_link"`
 }
 
-func RegisterLinksFromConfig(cfg config.Config) RegisterLinks {
-	username := strings.TrimPrefix(strings.TrimSpace(cfg.TelegramBotUsername), "@")
+type RegisterLinkOptions struct {
+	PublicBaseURL string
+	Username      string
+}
+
+func RegisterLinksFromConfig(cfg config.Config, opts RegisterLinkOptions) RegisterLinks {
+	username := strings.TrimPrefix(strings.TrimSpace(opts.Username), "@")
+	if username == "" {
+		username = strings.TrimPrefix(strings.TrimSpace(cfg.TelegramBotUsername), "@")
+	}
+
 	webAppURL := cfg.TelegramWebAppURL()
+	if webAppURL == "" && strings.TrimSpace(opts.PublicBaseURL) != "" {
+		webAppURL = strings.TrimRight(strings.TrimSpace(opts.PublicBaseURL), "/") + "/telegram/webapp"
+	}
+
 	links := RegisterLinks{
 		WebAppURL: webAppURL,
 		DeepLink:  fmt.Sprintf("%s://%s", cfg.TelegramDeepLinkSchemeValue(), cfg.TelegramDeepLinkHostValue()),

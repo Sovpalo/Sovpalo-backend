@@ -28,7 +28,7 @@ func TestRegisterLinksFromConfig(t *testing.T) {
 		TelegramMiniAppStartParam: "auth",
 		TelegramDeepLinkScheme:    "sovpalo",
 		TelegramDeepLinkHost:      "telegram-auth",
-	})
+	}, RegisterLinkOptions{})
 
 	if links.BotURL != "https://t.me/SovpaloBestBot" {
 		t.Fatalf("unexpected bot url: %s", links.BotURL)

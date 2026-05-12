@@ -15,5 +15,8 @@ func (h *Handler) telegramWebApp(c *gin.Context) {
 }
 
 func (h *Handler) telegramRegisterLinks(c *gin.Context) {
-	c.JSON(http.StatusOK, telegram.RegisterLinksFromConfig(h.appConfig))
+	c.JSON(http.StatusOK, telegram.RegisterLinksFromConfig(h.appConfig, telegram.RegisterLinkOptions{
+		PublicBaseURL: publicRequestBaseURL(c),
+		Username:      h.telegramUsername,
+	}))
 }
