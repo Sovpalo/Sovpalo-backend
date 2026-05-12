@@ -34,6 +34,15 @@ type Config struct {
 	APNSPrivateKeyPath string
 	APNSPrivateKey     string
 	APNSProduction     bool
+
+	TelegramBotToken          string
+	TelegramBotEnabled        bool
+	TelegramPublicBaseURL     string
+	TelegramWebAppURLOverride string
+	TelegramBotUsername       string
+	TelegramMiniAppStartParam string
+	TelegramDeepLinkScheme    string
+	TelegramDeepLinkHost      string
 }
 
 func Load() Config {
@@ -65,7 +74,44 @@ func Load() Config {
 		APNSPrivateKeyPath: getEnv("APNS_PRIVATE_KEY_PATH", ""),
 		APNSPrivateKey:     getEnv("APNS_PRIVATE_KEY", ""),
 		APNSProduction:     getEnvBool("APNS_PRODUCTION", false),
+
+		TelegramBotToken:          getEnv("TELEGRAM_BOT_TOKEN", ""),
+		TelegramBotEnabled:        getEnvBool("TELEGRAM_BOT_ENABLED", true),
+		TelegramPublicBaseURL:     strings.TrimRight(getEnv("TELEGRAM_PUBLIC_BASE_URL", ""), "/"),
+		TelegramWebAppURLOverride: strings.TrimRight(getEnv("TELEGRAM_WEBAPP_URL", ""), "/"),
+		TelegramBotUsername:       strings.TrimPrefix(strings.TrimSpace(getEnv("TELEGRAM_BOT_USERNAME", "")), "@"),
+		TelegramMiniAppStartParam: getEnv("TELEGRAM_MINI_APP_START_PARAM", "auth"),
+		TelegramDeepLinkScheme:    getEnv("TELEGRAM_DEEP_LINK_SCHEME", "sovpalo"),
+		TelegramDeepLinkHost:      getEnv("TELEGRAM_DEEP_LINK_HOST", "telegram-auth"),
 	}
+}
+
+func (c Config) TelegramWebAppURL() string {
+	if c.TelegramWebAppURLOverride != "" {
+		return c.TelegramWebAppURLOverride
+	}
+	if c.TelegramPublicBaseURL == "" {
+		return ""
+	}
+	return c.TelegramPublicBaseURL + "/telegram/webapp"
+}
+
+func (c Config) TelegramDeepLinkSchemeValue() string {
+	if strings.TrimSpace(c.TelegramDeepLinkScheme) == "" {
+		return "sovpalo"
+	}
+	return strings.TrimSpace(c.TelegramDeepLinkScheme)
+}
+
+func (c Config) TelegramDeepLinkHostValue() string {
+	if strings.TrimSpace(c.TelegramDeepLinkHost) == "" {
+		return "telegram-auth"
+	}
+	return strings.TrimSpace(c.TelegramDeepLinkHost)
+}
+
+func (c Config) TelegramBotPollingEnabled() bool {
+	return c.TelegramBotEnabled && strings.TrimSpace(c.TelegramBotToken) != "" && c.TelegramWebAppURL() != ""
 }
 
 func loadDotEnv(path string) {

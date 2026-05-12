@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sovpalo</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #0f1115;
+      color: #f5f7fb;
+      display: flex;
+      min-height: 100vh;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      text-align: center;
+    }
+    main {
+      max-width: 360px;
+    }
+    h1 {
+      font-size: 20px;
+      margin: 0 0 12px;
+    }
+    p {
+      margin: 0;
+      line-height: 1.5;
+      color: #c7ced9;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Вход в Sovpalo</h1>
+    <p id="status">Подтверждаем вход через Telegram…</p>
+  </main>
+  <script>
+    (function () {
+      var status = document.getElementById("status");
+      var scheme = "__DEEP_LINK_SCHEME__";
+      var host = "__DEEP_LINK_HOST__";
+      var tg = window.Telegram && window.Telegram.WebApp;
+
+      if (!tg) {
+        status.textContent = "Откройте эту страницу через Telegram Mini App.";
+        return;
+      }
+
+      tg.ready();
+      tg.expand();
+
+      var initData = tg.initData || "";
+      if (!initData) {
+        status.textContent = "Telegram не передал initData. Попробуйте снова из приложения Sovpalo.";
+        return;
+      }
+
+      var deepLink = scheme + "://" + host + "?init_data=" + encodeURIComponent(initData);
+      status.textContent = "Возвращаем в приложение Sovpalo…";
+
+      if (typeof tg.openLink === "function") {
+        tg.openLink(deepLink);
+      } else {
+        window.location.href = deepLink;
+      }
+
+      setTimeout(function () {
+        if (typeof tg.close === "function") {
+          tg.close();
+        }
+      }, 1500);
+    })();
+  </script>
+</body>
+</html>

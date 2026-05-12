@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Sovpalo/sovpalo-backend/internal/config"
 	"github.com/Sovpalo/sovpalo-backend/pkg/model"
 	"github.com/Sovpalo/sovpalo-backend/pkg/service"
 	"github.com/gorilla/websocket"
@@ -116,7 +117,7 @@ func TestListCompanyChatMessagesReturnsForbiddenForNonMember(t *testing.T) {
 		},
 	}
 
-	h := NewHandler(healthStub{}, svc)
+	h := NewHandler(healthStub{}, svc, config.Config{})
 	router := h.InitRoutes()
 
 	req := httptest.NewRequest(http.MethodGet, "/companies/9001/chat/messages", nil)
@@ -147,7 +148,7 @@ func TestCompanyChatWebSocketProbeReturnsNoContentWhenAuthenticated(t *testing.T
 		},
 	}
 
-	h := NewHandler(healthStub{}, svc)
+	h := NewHandler(healthStub{}, svc, config.Config{})
 	router := h.InitRoutes()
 
 	req := httptest.NewRequest(http.MethodGet, "/companies/9001/chat/ws?token=member-token", nil)
@@ -195,7 +196,7 @@ func TestCompanyChatWebSocketMessageCreatedIsPersonalizedForRecipient(t *testing
 		},
 	}
 
-	h := NewHandler(healthStub{}, svc)
+	h := NewHandler(healthStub{}, svc, config.Config{})
 	server := httptest.NewServer(h.InitRoutes())
 	defer server.Close()
 

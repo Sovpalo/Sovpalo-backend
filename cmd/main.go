@@ -11,6 +11,7 @@ import (
 	"github.com/Sovpalo/sovpalo-backend"
 	"github.com/Sovpalo/sovpalo-backend/internal/config"
 	"github.com/Sovpalo/sovpalo-backend/internal/db"
+	"github.com/Sovpalo/sovpalo-backend/internal/telegram"
 	"github.com/Sovpalo/sovpalo-backend/pkg/handler"
 	"github.com/Sovpalo/sovpalo-backend/pkg/repository"
 	"github.com/Sovpalo/sovpalo-backend/pkg/service"
@@ -41,7 +42,20 @@ func main() {
 	healthService := service.NewHealthService(healthRepo)
 	repos := repository.NewRepository(pool, redisClient)
 	services := service.NewService(repos, cfg)
-	handlers := handler.NewHandler(healthService, services)
+	handlers := handler.NewHandler(healthService, services, cfg)
+
+	botCtx, botCancel := context.WithCancel(context.Background())
+	defer botCancel()
+	if cfg.TelegramBotPollingEnabled() {
+		bot := telegram.NewBot(cfg)
+		go func() {
+			if err := bot.Run(botCtx); err != nil && err != context.Canceled {
+				log.Printf("telegram bot stopped: %v", err)
+			}
+		}()
+	} else {
+		log.Printf("telegram bot polling disabled: configure TELEGRAM_BOT_TOKEN and TELEGRAM_PUBLIC_BASE_URL or TELEGRAM_WEBAPP_URL")
+	}
 
 	srv := new(sovpalo.Server)
 	go func() {
@@ -54,6 +68,7 @@ func main() {
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
+	botCancel()
 
 	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer shutdownCancel()

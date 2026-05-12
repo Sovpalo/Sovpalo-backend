@@ -5,21 +5,24 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/Sovpalo/sovpalo-backend/internal/config"
 	"github.com/Sovpalo/sovpalo-backend/pkg/service"
 	"github.com/gin-gonic/gin"
 )
 
 type Handler struct {
-	health   service.HealthService
-	services *service.Service
-	chatHub  *chatHub
+	health    service.HealthService
+	services  *service.Service
+	chatHub   *chatHub
+	appConfig config.Config
 }
 
-func NewHandler(health service.HealthService, services *service.Service) *Handler {
+func NewHandler(health service.HealthService, services *service.Service, appConfig config.Config) *Handler {
 	return &Handler{
-		health:   health,
-		services: services,
-		chatHub:  newChatHub(),
+		health:    health,
+		services:  services,
+		chatHub:   newChatHub(),
+		appConfig: appConfig,
 	}
 }
 
@@ -31,6 +34,7 @@ func (h *Handler) InitRoutes() *gin.Engine {
 	// проверка статуса сервиса, возвращает статус и ошибку, если сервис не работает
 	router.GET("/health", h.healthHandler)
 	router.GET("/health/smtp", h.smtpHealthHandler)
+	router.GET("/telegram/webapp", h.telegramWebApp)
 	auth := router.Group("/auth")
 	{
 		// старт регистрации и отправка кода на email
@@ -43,6 +47,8 @@ func (h *Handler) InitRoutes() *gin.Engine {
 		auth.POST("/sign-in", h.signIn)
 		// вход через Telegram Login Widget / WebApp init data
 		auth.POST("/telegram/sign-in", h.telegramSignIn)
+		// ссылки для Telegram Mini App / бота
+		auth.GET("/telegram/register", h.telegramRegisterLinks)
 		// запуск восстановления пароля
 		auth.POST("/password/forgot", h.forgotPassword)
 		// подтверждение кода и установка нового пароля
