@@ -97,6 +97,8 @@ services:
     volumes:
       # Иначе при каждом пересоздании контейнера теряются локальные файлы (аватарки, фото встреч/идей, медиа чата).
       - uploads-data:/app/uploads
+      # APNs Auth Key (.p8) на хосте: задайте APNS_KEY_HOST_PATH в .env (см. .env.example).
+      - ${APNS_KEY_HOST_PATH:-/opt/sovpalo/secrets/apns.p8}:/run/secrets/apns.p8:ro
     restart: unless-stopped
 
 volumes:
