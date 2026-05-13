@@ -20,12 +20,13 @@ type PushSender interface {
 }
 
 type NotificationService struct {
-	repo   repository.Notification
-	sender PushSender
+	repo          repository.Notification
+	sender        PushSender
+	dispatchDebug bool
 }
 
-func NewNotificationService(repo repository.Notification, sender PushSender) *NotificationService {
-	return &NotificationService{repo: repo, sender: sender}
+func NewNotificationService(repo repository.Notification, sender PushSender, dispatchDebug bool) *NotificationService {
+	return &NotificationService{repo: repo, sender: sender, dispatchDebug: dispatchDebug}
 }
 
 func (s *NotificationService) RegisterPushToken(userID int64, input model.PushTokenRegisterInput) error {
@@ -62,9 +63,26 @@ func (s *NotificationService) Dispatch(notification model.PushNotification) {
 		return
 	}
 
+	if s.dispatchDebug {
+		suffixes := make([]string, 0, len(tokens))
+		for _, t := range tokens {
+			suffixes = append(suffixes, pushTokenSuffix(t.Token))
+		}
+		log.Printf("push dispatch: recipient_user_id=%d notification_type=%s related_entity_type=%v related_entity_id=%v push_token_count=%d token_suffixes=[%s]",
+			notification.UserID, notification.Type, notification.RelatedEntityType, notification.RelatedEntityID, len(tokens), strings.Join(suffixes, ","))
+	}
+
 	for _, token := range tokens {
 		if err := s.sender.Send(token, notification); err != nil {
 			log.Printf("push send error: %v", err)
 		}
 	}
+}
+
+func pushTokenSuffix(hexToken string) string {
+	t := strings.TrimSpace(hexToken)
+	if len(t) <= 8 {
+		return t
+	}
+	return t[len(t)-8:]
 }

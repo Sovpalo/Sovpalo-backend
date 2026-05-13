@@ -133,15 +133,46 @@ func (s *APNSPushSender) Send(token model.PushDeviceToken, notification model.Pu
 	}
 	defer resp.Body.Close()
 
+	respBody, _ := io.ReadAll(io.LimitReader(resp.Body, 2048))
+	bodyStr := strings.TrimSpace(string(respBody))
+	apnsID := resp.Header.Get("apns-id")
+	tokSuffix := pushTokenSuffix(deviceToken)
+
 	if resp.StatusCode >= 200 && resp.StatusCode < 300 {
+		if s.debug {
+			log.Printf("push apns result: device_token_user_id=%d notification_type=%s http_status=%d token_suffix=%s apns_id=%q",
+				token.UserID, notification.Type, resp.StatusCode, tokSuffix, apnsID)
+		}
 		return nil
 	}
 
-	respBody, _ := io.ReadAll(io.LimitReader(resp.Body, 2048))
+	reason := apnsResponseReason(bodyStr)
+	if s.debug {
+		log.Printf("push apns result: device_token_user_id=%d notification_type=%s http_status=%d token_suffix=%s apns_reason=%q apns_id=%q body=%q",
+			token.UserID, notification.Type, resp.StatusCode, tokSuffix, reason, apnsID, truncateRunes(bodyStr, 240))
+	}
+
 	if resp.StatusCode == http.StatusGone && s.tokenRepo != nil {
 		_ = s.tokenRepo.RemovePushDeviceToken(deviceToken)
 	}
-	return fmt.Errorf("apns returned %d: %s", resp.StatusCode, strings.TrimSpace(string(respBody)))
+	return fmt.Errorf("apns returned %d: %s", resp.StatusCode, bodyStr)
+}
+
+func apnsResponseReason(body string) string {
+	var parsed struct {
+		Reason string `json:"reason"`
+	}
+	if err := json.Unmarshal([]byte(body), &parsed); err != nil {
+		return ""
+	}
+	return parsed.Reason
+}
+
+func truncateRunes(s string, max int) string {
+	if max <= 0 || len(s) <= max {
+		return s
+	}
+	return s[:max] + "…"
 }
 
 func (s *APNSPushSender) authorizationToken() (string, error) {

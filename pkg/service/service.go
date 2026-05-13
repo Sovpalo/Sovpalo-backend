@@ -22,7 +22,7 @@ type Service struct {
 func NewService(repos *repository.Repository, cfg config.Config) *Service {
 	ideaGenerator := NewIdeaGenerator(cfg)
 	pushSender := NewAPNSPushSender(cfg, repos.Notification)
-	notificationService := NewNotificationService(repos.Notification, pushSender)
+	notificationService := NewNotificationService(repos.Notification, pushSender, cfg.APNSDebug)
 
 	return &Service{
 		Authorization: NewAuthService(repos.Authorization),
