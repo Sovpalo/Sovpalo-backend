@@ -45,6 +45,25 @@ func (h *Handler) telegramSignIn(c *gin.Context) {
 	})
 }
 
+func (h *Handler) appleSignIn(c *gin.Context) {
+	var input model.AppleSignInInput
+
+	if err := c.BindJSON(&input); err != nil {
+		newErrorResponse(c, http.StatusBadRequest, bindingErrorMessage(err))
+		return
+	}
+
+	token, err := h.services.Authorization.SignInApple(input)
+	if err != nil {
+		mapRegistrationError(c, err)
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"token": token,
+	})
+}
+
 func (h *Handler) forgotPassword(c *gin.Context) {
 	var input model.ForgotPasswordInput
 	if err := c.BindJSON(&input); err != nil {

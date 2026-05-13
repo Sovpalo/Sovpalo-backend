@@ -17,6 +17,7 @@ import (
 
 type authRepoStub struct {
 	userByTelegramID map[int64]model.User
+	userByAppleID    map[string]model.User
 	takenUsernames   map[string]bool
 	createdUsers     []model.User
 	nextUserID       int
@@ -34,9 +35,16 @@ func (s *authRepoStub) CreateUser(user model.User) (int, error) {
 	if s.userByTelegramID == nil {
 		s.userByTelegramID = map[int64]model.User{}
 	}
+	if s.userByAppleID == nil {
+		s.userByAppleID = map[string]model.User{}
+	}
 	if user.TelegramID != nil {
 		user.ID = int64(s.nextUserID)
 		s.userByTelegramID[*user.TelegramID] = user
+	}
+	if user.AppleUserID != nil {
+		user.ID = int64(s.nextUserID)
+		s.userByAppleID[*user.AppleUserID] = user
 	}
 	return s.nextUserID, nil
 }
@@ -51,6 +59,14 @@ func (s *authRepoStub) GetUserByEmail(email string) (model.User, error) {
 
 func (s *authRepoStub) GetUserByTelegramID(telegramID int64) (model.User, error) {
 	user, ok := s.userByTelegramID[telegramID]
+	if !ok {
+		return model.User{}, pgx.ErrNoRows
+	}
+	return user, nil
+}
+
+func (s *authRepoStub) GetUserByAppleID(appleUserID string) (model.User, error) {
+	user, ok := s.userByAppleID[appleUserID]
 	if !ok {
 		return model.User{}, pgx.ErrNoRows
 	}

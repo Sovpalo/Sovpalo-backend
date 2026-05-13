@@ -92,7 +92,7 @@ go run ./cmd/migrate status
 - `POST /companies/:id/chat/messages/read` — отметить сообщения как прочитанные. Принимает массив `message_ids`.
 - `GET /companies/:id/chat/unread-count` — получить количество непрочитанных сообщений в чате компании.
 - `GET /companies/:id/chat/ws?token=<jwt>` — WebSocket-подключение для realtime-событий `message_created`, `messages_read`, `message_deleted`.
-- Push-уведомления отправляются через APNs для сообщений в чате, назначения встречи и изменения времени/места встречи. Для включения отправки задайте `APNS_KEY_ID`, `APNS_TEAM_ID`, `APNS_BUNDLE_ID` и `APNS_PRIVATE_KEY_PATH` или `APNS_PRIVATE_KEY`. Без этих переменных уведомления сохраняются в `notifications`, но push в APNs не отправляется.
+- Push-уведомления отправляются через APNs для сообщений в чате, назначения встречи и изменения времени/места встречи. Для включения отправки задайте `APNS_KEY_ID`, `APNS_TEAM_ID`, `APNS_BUNDLE_ID` и `APNS_PRIVATE_KEY_PATH` или `APNS_PRIVATE_KEY`. Без этих переменных уведомления сохраняются в `notifications`, но push в APNs не отправляется. Для отладки: `APNS_DEBUG=true` — в логах API появятся выбранный endpoint (sandbox/production), `apns-topic`, Key ID, Team ID и декодированные header/payload провайдерского JWT (без подписи и без ключа).
 - Ответы со списками участников, приглашений, посещаемости, идей и доступности включают `avatar_url` пользователя там, где возвращаются данные пользователя.
 
 Краткий контракт для мобильного клиента с JSON-примерами: [docs/mobile-chat-contract.md](/Users/gaane/dev/sovpalo-backend-clean/docs/mobile-chat-contract.md:1).

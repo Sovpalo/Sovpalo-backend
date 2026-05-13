@@ -39,6 +39,7 @@ var (
 	ErrIncorrectVerificationCode   = errors.New("incorrect verification code")
 	ErrInvalidTelegramAuth         = errors.New("invalid telegram auth data")
 	ErrTelegramAuthExpired         = errors.New("telegram auth data expired")
+	ErrInvalidAppleAuth            = errors.New("invalid apple auth data")
 	ErrAvatarTooLarge              = errors.New("avatar file is too large")
 	ErrAvatarInvalidType           = errors.New("avatar must be a png, jpeg, webp or gif image")
 )
@@ -49,10 +50,11 @@ const (
 )
 
 type AuthService struct {
-	repo         repository.Authorization
-	jwtSecret    []byte
-	passwordSalt string
-	pendingTTL   time.Duration
+	repo           repository.Authorization
+	jwtSecret      []byte
+	passwordSalt   string
+	pendingTTL     time.Duration
+	appleValidator appleIdentityValidator
 }
 
 func NewAuthService(repo repository.Authorization) *AuthService {

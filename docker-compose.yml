@@ -78,6 +78,7 @@ services:
       APNS_PRIVATE_KEY_PATH: ${APNS_PRIVATE_KEY_PATH:-}
       APNS_PRIVATE_KEY: ${APNS_PRIVATE_KEY:-}
       APNS_PRODUCTION: ${APNS_PRODUCTION:-false}
+      APNS_DEBUG: ${APNS_DEBUG:-false}
       SMTP_HOST: ${SMTP_HOST:-}
       SMTP_PORT: ${SMTP_PORT:-587}
       SMTP_USERNAME: ${SMTP_USERNAME:-}
@@ -95,9 +96,7 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      # Иначе при каждом пересоздании контейнера теряются локальные файлы (аватарки, фото встреч/идей, медиа чата).
       - uploads-data:/app/uploads
-      # APNs Auth Key (.p8) на хосте: задайте APNS_KEY_HOST_PATH в .env (см. .env.example).
       - ${APNS_KEY_HOST_PATH:-/opt/sovpalo/secrets/apns.p8}:/run/secrets/apns.p8:ro
     restart: unless-stopped
 

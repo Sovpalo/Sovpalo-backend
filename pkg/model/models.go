@@ -7,10 +7,11 @@ import (
 )
 
 type User struct {
-	ID         int64          `db:"id" json:"id"`
-	Email      *string        `db:"email" json:"email,omitempty"`
-	TelegramID *int64         `db:"telegram_id" json:"telegram_id,omitempty"`
-	Username   string         `db:"username" json:"username"`
+	ID          int64          `db:"id" json:"id"`
+	Email       *string        `db:"email" json:"email,omitempty"`
+	TelegramID  *int64         `db:"telegram_id" json:"telegram_id,omitempty"`
+	AppleUserID *string        `json:"-"`
+	Username    string         `db:"username" json:"username"`
 	AvatarURL  *string        `db:"avatar_url" json:"avatar_url,omitempty"`
 	Password   string         `db:"password" json:"password"`
 	Providers  []AuthProvider `json:"providers,omitempty"`

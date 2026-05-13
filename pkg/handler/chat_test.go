@@ -56,6 +56,9 @@ func (s authStub) SignIn(input model.SignInInput) (string, error)       { return
 func (s authStub) SignInTelegram(input model.TelegramSignInInput) (string, error) {
 	return "", nil
 }
+func (s authStub) SignInApple(input model.AppleSignInInput) (string, error) {
+	return "", nil
+}
 func (s authStub) StartRegistration(input model.SignUpInput) error { return nil }
 func (s authStub) VerifyRegistration(input model.SignUpVerifyInput) (string, error) {
 	return "", nil

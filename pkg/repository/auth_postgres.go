@@ -74,6 +74,12 @@ func (r *AuthPostgres) CreateUser(user model.User) (int, error) {
 		}
 	}
 
+	if user.AppleUserID != nil {
+		if err := r.insertIdentity(ctx, tx, int64(id), model.AuthProviderApple, user.AppleUserID, nil, nil, !hasPrimary); err != nil {
+			return 0, err
+		}
+	}
+
 	if err := tx.Commit(ctx); err != nil {
 		return 0, err
 	}
@@ -121,6 +127,23 @@ func (r *AuthPostgres) GetUserByTelegramID(telegramID int64) (model.User, error)
 		return user, err
 	}
 	user.TelegramID = &telegramID
+	return user, err
+}
+
+func (r *AuthPostgres) GetUserByAppleID(appleUserID string) (model.User, error) {
+	var user model.User
+	query := `
+		SELECT u.id, u.username
+		FROM users u
+		JOIN auth_identities ai ON ai.user_id = u.id
+		WHERE ai.provider = $1 AND ai.provider_user_id = $2
+		LIMIT 1
+	`
+	err := r.pool.QueryRow(context.Background(), query, model.AuthProviderApple, appleUserID).Scan(&user.ID, &user.Username)
+	if err != nil {
+		return user, err
+	}
+	user.AppleUserID = &appleUserID
 	return user, err
 }
 

@@ -7,6 +7,7 @@ type AuthProvider string
 const (
 	AuthProviderPassword AuthProvider = "password"
 	AuthProviderTelegram AuthProvider = "telegram"
+	AuthProviderApple    AuthProvider = "apple"
 )
 
 type SignUpInput struct {
@@ -34,6 +35,14 @@ type TelegramSignInInput struct {
 	PhotoURL  *string `json:"photo_url,omitempty"`
 	AuthDate  int64   `json:"auth_date"`
 	Hash      string  `json:"hash"`
+}
+
+type AppleSignInInput struct {
+	IdentityToken string  `json:"identity_token" binding:"required"`
+	Nonce         *string `json:"nonce,omitempty"`
+	Email         *string `json:"email,omitempty"`
+	GivenName     *string `json:"given_name,omitempty"`
+	FamilyName    *string `json:"family_name,omitempty"`
 }
 
 type ForgotPasswordInput struct {

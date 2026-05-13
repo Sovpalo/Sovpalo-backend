@@ -134,6 +134,10 @@ func (r *AuthRepository) GetUserByTelegramID(telegramID int64) (model.User, erro
 	return r.postgres.GetUserByTelegramID(telegramID)
 }
 
+func (r *AuthRepository) GetUserByAppleID(appleUserID string) (model.User, error) {
+	return r.postgres.GetUserByAppleID(appleUserID)
+}
+
 func (r *AuthRepository) GetUserByID(userID int64) (model.User, error) {
 	return r.postgres.GetUserByID(userID)
 }

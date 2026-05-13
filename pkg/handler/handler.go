@@ -49,6 +49,8 @@ func (h *Handler) InitRoutes() *gin.Engine {
 		auth.POST("/sign-in", h.signIn)
 		// вход через Telegram Login Widget / WebApp init data
 		auth.POST("/telegram/sign-in", h.telegramSignIn)
+		// вход через Sign in with Apple
+		auth.POST("/apple/sign-in", h.appleSignIn)
 		// ссылки для Telegram Mini App / бота
 		auth.GET("/telegram/register", h.telegramRegisterLinks)
 		// запуск восстановления пароля

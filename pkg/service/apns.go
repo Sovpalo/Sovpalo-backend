@@ -3,10 +3,12 @@ package service
 import (
 	"bytes"
 	"crypto/ecdsa"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"os"
 	"strings"
@@ -25,6 +27,8 @@ type APNSPushSender struct {
 	bundleID    string
 	privateKey  *ecdsa.PrivateKey
 	host        string
+	production  bool
+	debug       bool
 	httpClient  *http.Client
 	tokenRepo   repository.Notification
 	mu          sync.Mutex
@@ -60,6 +64,8 @@ func NewAPNSPushSender(cfg config.Config, tokenRepo repository.Notification) *AP
 		bundleID:   cfg.APNSBundleID,
 		privateKey: privateKey,
 		host:       host,
+		production: cfg.APNSProduction,
+		debug:      cfg.APNSDebug,
 		httpClient: &http.Client{Timeout: 10 * time.Second},
 		tokenRepo:  tokenRepo,
 	}
@@ -115,6 +121,12 @@ func (s *APNSPushSender) Send(token model.PushDeviceToken, notification model.Pu
 	req.Header.Set("apns-push-type", "alert")
 	req.Header.Set("content-type", "application/json")
 
+	if s.debug {
+		endpointHost := strings.TrimPrefix(strings.TrimPrefix(s.host, "https://"), "http://")
+		log.Printf("apns debug: production=%v endpoint_host=%s request_url_host=%s topic=%s key_id=%s team_id=%s",
+			s.production, endpointHost, req.URL.Host, s.bundleID, s.keyID, s.teamID)
+	}
+
 	resp, err := s.httpClient.Do(req)
 	if err != nil {
 		return err
@@ -155,7 +167,32 @@ func (s *APNSPushSender) authorizationToken() (string, error) {
 		return "", err
 	}
 
+	if s.debug {
+		logAPNSProviderJWTParts(signed)
+	}
+
 	s.bearerToken = signed
 	s.tokenExpiry = now.Add(45 * time.Minute)
 	return signed, nil
+}
+
+// logAPNSProviderJWTParts logs APNs provider token header and payload (no signature, no private key).
+func logAPNSProviderJWTParts(tokenString string) {
+	parts := strings.Split(tokenString, ".")
+	if len(parts) < 2 {
+		log.Printf("apns debug: provider jwt unexpected segment count: %d", len(parts))
+		return
+	}
+	headerBytes, err := base64.RawURLEncoding.DecodeString(parts[0])
+	if err != nil {
+		log.Printf("apns debug: provider jwt header decode: %v", err)
+		return
+	}
+	payloadBytes, err := base64.RawURLEncoding.DecodeString(parts[1])
+	if err != nil {
+		log.Printf("apns debug: provider jwt payload decode: %v", err)
+		return
+	}
+	log.Printf("apns debug: provider jwt header: %s", string(headerBytes))
+	log.Printf("apns debug: provider jwt payload: %s", string(payloadBytes))
 }

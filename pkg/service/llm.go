@@ -109,7 +109,9 @@ func (g *YandexIdeaGenerator) GenerateIdeas(ctx context.Context, req IdeaGenerat
 		Messages: []yandexMessage{
 			{
 				Role: "system",
-				Text: "You generate concise and original ideas for meetings. Always follow the required JSON schema exactly.",
+				Text: "You generate concise and original ideas for meetings. " +
+					"Always follow the required JSON schema exactly. " +
+					"Answer in the user's language.",
 			},
 			{
 				Role: "user",
@@ -234,7 +236,10 @@ func ideaSchema(count int) map[string]any {
 							"description": "Detailed description of the idea",
 						},
 					},
-					"required":             []string{"title", "description"},
+					"required": []string{
+						"title",
+						"description",
+					},
 					"additionalProperties": false,
 				},
 			},

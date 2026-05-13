@@ -34,6 +34,7 @@ type Config struct {
 	APNSPrivateKeyPath string
 	APNSPrivateKey     string
 	APNSProduction     bool
+	APNSDebug          bool
 
 	TelegramBotToken          string
 	TelegramBotEnabled        bool
@@ -74,6 +75,7 @@ func Load() Config {
 		APNSPrivateKeyPath: getEnv("APNS_PRIVATE_KEY_PATH", ""),
 		APNSPrivateKey:     getEnv("APNS_PRIVATE_KEY", ""),
 		APNSProduction:     getEnvBool("APNS_PRODUCTION", false),
+		APNSDebug:          getEnvBool("APNS_DEBUG", false),
 
 		TelegramBotToken:          getEnv("TELEGRAM_BOT_TOKEN", ""),
 		TelegramBotEnabled:        getEnvBool("TELEGRAM_BOT_ENABLED", true),
