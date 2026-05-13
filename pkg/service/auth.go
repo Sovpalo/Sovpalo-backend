@@ -819,7 +819,7 @@ func (s *AuthService) ensureUniqueUsername(base string, telegramID int64) (strin
 }
 
 func sanitizeTelegramUsername(value string) string {
-	value = strings.ToLower(strings.TrimSpace(value))
+	value = strings.ToLower(strings.TrimSpace(transliterateCyrillicToLatin(value)))
 	if value == "" {
 		return ""
 	}
@@ -848,4 +848,59 @@ func sanitizeTelegramUsername(value string) string {
 	}
 
 	return strings.Trim(builder.String(), "_")
+}
+
+// transliterateCyrillicToLatin maps Cyrillic letters to Latin so display names
+// (e.g. Russian) produce a valid ASCII username instead of an empty string.
+func transliterateCyrillicToLatin(s string) string {
+	var b strings.Builder
+	b.Grow(len(s) * 2)
+	for _, r := range s {
+		if rep, ok := cyrillicToLatin[r]; ok {
+			b.WriteString(rep)
+			continue
+		}
+		b.WriteRune(r)
+	}
+	return b.String()
+}
+
+var cyrillicToLatin = map[rune]string{
+	'А': "a", 'а': "a",
+	'Б': "b", 'б': "b",
+	'В': "v", 'в': "v",
+	'Г': "g", 'г': "g",
+	'Д': "d", 'д': "d",
+	'Е': "e", 'е': "e",
+	'Ё': "yo", 'ё': "yo",
+	'Ж': "zh", 'ж': "zh",
+	'З': "z", 'з': "z",
+	'И': "i", 'и': "i",
+	'Й': "y", 'й': "y",
+	'К': "k", 'к': "k",
+	'Л': "l", 'л': "l",
+	'М': "m", 'м': "m",
+	'Н': "n", 'н': "n",
+	'О': "o", 'о': "o",
+	'П': "p", 'п': "p",
+	'Р': "r", 'р': "r",
+	'С': "s", 'с': "s",
+	'Т': "t", 'т': "t",
+	'У': "u", 'у': "u",
+	'Ф': "f", 'ф': "f",
+	'Х': "h", 'х': "h",
+	'Ц': "ts", 'ц': "ts",
+	'Ч': "ch", 'ч': "ch",
+	'Ш': "sh", 'ш': "sh",
+	'Щ': "sch", 'щ': "sch",
+	'Ъ': "", 'ъ': "",
+	'Ы': "y", 'ы': "y",
+	'Ь': "", 'ь': "",
+	'Э': "e", 'э': "e",
+	'Ю': "yu", 'ю': "yu",
+	'Я': "ya", 'я': "ya",
+	'І': "i", 'і': "i",
+	'Ї': "yi", 'ї': "yi",
+	'Є': "ye", 'є': "ye",
+	'Ґ': "g", 'ґ': "g",
 }

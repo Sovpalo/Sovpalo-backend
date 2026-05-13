@@ -200,6 +200,15 @@ func TestAuthServiceSignInTelegramRejectsInvalidWebAppHash(t *testing.T) {
 	}
 }
 
+func TestSanitizeTelegramUsernameCyrillic(t *testing.T) {
+	if got := sanitizeTelegramUsername("Иван Петров"); got != "ivan_petrov" {
+		t.Fatalf("expected ivan_petrov, got %q", got)
+	}
+	if got := sanitizeTelegramUsername("Мария"); got != "mariya" {
+		t.Fatalf("expected mariya, got %q", got)
+	}
+}
+
 func TestTelegramDataCheckStringSortsKeys(t *testing.T) {
 	actual := telegramDataCheckString(map[string]string{
 		"username":   "alice",

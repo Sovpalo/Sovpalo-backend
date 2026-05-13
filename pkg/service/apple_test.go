@@ -59,6 +59,40 @@ func TestAuthServiceSignInAppleCreatesUser(t *testing.T) {
 	}
 }
 
+func TestAuthServiceSignInAppleCyrillicDisplayName(t *testing.T) {
+	t.Setenv("JWT_SECRET", "jwt-secret")
+	t.Setenv("APPLE_CLIENT_ID", "com.sovpalo.test")
+
+	repo := &authRepoStub{
+		userByAppleID:  map[string]model.User{},
+		takenUsernames: map[string]bool{},
+	}
+	svc := NewAuthService(repo)
+	svc.appleValidator = appleIdentityValidatorStub{
+		identity: validatedAppleIdentity{AppleUserID: "009999.zzzzzz"},
+	}
+
+	givenName := "Иван"
+	familyName := "Петров"
+	token, err := svc.SignInApple(model.AppleSignInInput{
+		IdentityToken: "token",
+		GivenName:     &givenName,
+		FamilyName:    &familyName,
+	})
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if token == "" {
+		t.Fatal("expected token")
+	}
+	if len(repo.createdUsers) != 1 {
+		t.Fatalf("expected 1 created user, got %d", len(repo.createdUsers))
+	}
+	if repo.createdUsers[0].Username != "ivan_petrov" {
+		t.Fatalf("expected username ivan_petrov, got %s", repo.createdUsers[0].Username)
+	}
+}
+
 func TestAuthServiceSignInAppleReturnsExistingUserToken(t *testing.T) {
 	t.Setenv("JWT_SECRET", "jwt-secret")
 	t.Setenv("APPLE_CLIENT_ID", "com.sovpalo.test")

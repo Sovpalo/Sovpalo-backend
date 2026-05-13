@@ -68,7 +68,7 @@ func (s *AuthService) SignInApple(input model.AppleSignInInput) (string, error) 
 			return "", err
 		}
 
-		username, usernameErr := s.generateAppleUsername(input, identity.AppleUserID)
+		username, usernameErr := s.generateAppleUsername(input, identity.AppleUserID, identity.Email)
 		if usernameErr != nil {
 			return "", usernameErr
 		}
@@ -286,8 +286,8 @@ func verifyAppleNonce(tokenNonce string, nonce *string) error {
 	return nil
 }
 
-func (s *AuthService) generateAppleUsername(input model.AppleSignInInput, appleUserID string) (string, error) {
-	candidates := make([]string, 0, 2)
+func (s *AuthService) generateAppleUsername(input model.AppleSignInInput, appleUserID string, tokenEmail *string) (string, error) {
+	candidates := make([]string, 0, 4)
 
 	fullName := ""
 	if input.GivenName != nil {
@@ -301,6 +301,19 @@ func (s *AuthService) generateAppleUsername(input model.AppleSignInInput, appleU
 	}
 	if username := sanitizeTelegramUsername(fullName); username != "" {
 		candidates = append(candidates, username)
+	}
+
+	for _, emailPtr := range []*string{tokenEmail, input.Email} {
+		if emailPtr == nil {
+			continue
+		}
+		local := emailLocalPartForUsername(*emailPtr)
+		if local == "" {
+			continue
+		}
+		if username := sanitizeTelegramUsername(local); username != "" {
+			candidates = append(candidates, username)
+		}
 	}
 
 	safeID := strings.ToLower(strings.ReplaceAll(appleUserID, ".", "_"))
@@ -320,4 +333,17 @@ func (s *AuthService) generateAppleUsername(input model.AppleSignInInput, appleU
 	}
 
 	return "", ErrUsernameAlreadyExists
+}
+
+func emailLocalPartForUsername(email string) string {
+	email = strings.TrimSpace(strings.ToLower(email))
+	at := strings.LastIndex(email, "@")
+	if at <= 0 || at == len(email)-1 {
+		return ""
+	}
+	local := email[:at]
+	if plus := strings.Index(local, "+"); plus >= 0 {
+		local = local[:plus]
+	}
+	return strings.TrimSpace(local)
 }
